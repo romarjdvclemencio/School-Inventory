@@ -1,184 +1,78 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    // ─── Helper functions ─────────────────────────────────────────────────────
-
-    function isAuthenticated() {
-      return request.auth != null;
-    }
-
-    function getUserData() {
-      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-    }
-
-    function userRole() {
-      return getUserData().role;
-    }
-
-    function isAdmin() {
-      return isAuthenticated() && userRole() == 'admin';
-    }
-
-    function isOfficerOrAbove() {
-      return isAuthenticated() && userRole() in ['admin', 'officer'];
-    }
-
-    function isTeacherOrAbove() {
-      return isAuthenticated() && userRole() in ['admin', 'officer', 'teacher'];
-    }
-
-    function isActiveUser() {
-      return isAuthenticated() && getUserData().status == 'active';
-    }
-
-    // Protected fields that only admins may touch
+    function isAuthenticated() { return request.auth != null; }
+    function getUserData() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
+    function userRole() { return getUserData().role; }
+    function isAdmin() { return isAuthenticated() && userRole() == 'admin'; }
+    function isOfficerOrAbove() { return isAuthenticated() && userRole() in ['admin', 'officer']; }
+    function isTeacherOrAbove() { return isAuthenticated() && userRole() in ['admin', 'officer', 'teacher']; }
+    function isActiveUser() { return isAuthenticated() && getUserData().status == 'active'; }
     function touchesProtectedFields() {
       let affected = request.resource.data.diff(resource.data).affectedKeys();
       return affected.hasAny(['role', 'status', 'isAdmin', 'permissions', 'accountStatus']);
     }
 
-    // ─── Users ────────────────────────────────────────────────────────────────
-    // Rule evaluation: Firestore grants access if ANY matching rule allows it.
-    // We use explicit checks rather than broad 'write' to prevent escalation.
     match /users/{userId} {
-
-      // Any authenticated user can read their own profile
-      // Admins can read ALL user profiles
-      allow read: if isAuthenticated() &&
-                     (request.auth.uid == userId || isAdmin());
-
-      // Users can CREATE their own profile on first sign-in (never with elevated roles)
-      allow create: if isAuthenticated() &&
-                       request.auth.uid == userId &&
-                       request.resource.data.role == 'viewer' &&
-                       request.resource.data.status == 'active';
-
-      // Only admins can create ANY user profile (e.g., pre-configured invites)
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      allow create: if isAuthenticated() && request.auth.uid == userId && request.resource.data.role == 'viewer' && request.resource.data.status == 'active';
       allow create: if isAdmin();
-
-      // Users can update their own non-sensitive fields only
-      allow update: if isAuthenticated() &&
-                       request.auth.uid == userId &&
-                       !touchesProtectedFields();
-
-      // Only admins can update protected fields (role, status) on any user
+      allow update: if isAuthenticated() && request.auth.uid == userId && !touchesProtectedFields();
       allow update: if isAdmin();
-
-      // Only admins can delete user records
       allow delete: if isAdmin();
     }
 
-    // ─── Inventory ────────────────────────────────────────────────────────────
     match /inventory/{itemId} {
-      // All authenticated active users can view inventory
       allow read: if isActiveUser();
-
-      // Officers and admins can create items with basic validation
-      allow create: if isOfficerOrAbove() && isActiveUser() &&
-                       request.resource.data.name is string &&
-                       request.resource.data.name.size() > 0 &&
-                       request.resource.data.assetCode is string &&
-                       request.resource.data.assetCode.size() > 0 &&
-                       request.resource.data.quantity is number &&
-                       request.resource.data.quantity >= 0;
-
-      // Officers and admins can update items
-      // Prevent setting quantity below zero
-      allow update: if isOfficerOrAbove() && isActiveUser() &&
-                       (request.resource.data.quantity == null ||
-                        request.resource.data.quantity >= 0);
-
-      // Only admins can delete inventory items
+      allow create: if isOfficerOrAbove() && isActiveUser() && request.resource.data.name is string && request.resource.data.name.size() > 0 && request.resource.data.assetCode is string && request.resource.data.assetCode.size() > 0 && request.resource.data.quantity is number && request.resource.data.quantity >= 0;
+      allow update: if isOfficerOrAbove() && isActiveUser() && (request.resource.data.quantity == null || request.resource.data.quantity >= 0);
       allow delete: if isAdmin() && isActiveUser();
     }
 
-    // ─── Categories ───────────────────────────────────────────────────────────
     match /categories/{catId} {
-      // Any authenticated user can read categories
       allow read: if isAuthenticated();
-      // Officers and admins can manage categories
       allow write: if isOfficerOrAbove() && isActiveUser();
     }
 
-    // ─── Locations ────────────────────────────────────────────────────────────
     match /locations/{locId} {
-      // Any authenticated user can read locations
       allow read: if isAuthenticated();
-      // Officers and admins can manage locations
       allow write: if isOfficerOrAbove() && isActiveUser();
     }
 
-    // ─── Borrowings ───────────────────────────────────────────────────────────
     match /borrowings/{borrowId} {
-      // Officers and admins can read all borrowings
-      // Teachers can only read borrowings they created
       allow read: if isOfficerOrAbove() && isActiveUser();
-      allow read: if isTeacherOrAbove() && isActiveUser() &&
-                     resource.data.borrowerUid == request.auth.uid;
-
-      // Teachers and above can create borrowing requests
-      allow create: if isTeacherOrAbove() && isActiveUser() &&
-                       request.resource.data.quantity is number &&
-                       request.resource.data.quantity > 0;
-
-      // Only officers/admins can approve, update, or manage borrowings
+      allow read: if isTeacherOrAbove() && isActiveUser() && resource.data.borrowerUid == request.auth.uid;
+      allow create: if isTeacherOrAbove() && isActiveUser() && request.resource.data.quantity is number && request.resource.data.quantity > 0;
       allow update: if isOfficerOrAbove() && isActiveUser();
-
-      // Only admins can delete borrowing records
       allow delete: if isAdmin() && isActiveUser();
     }
 
-    // ─── Maintenance ──────────────────────────────────────────────────────────
     match /maintenance/{reportId} {
-      // Officers and admins can read all maintenance records
-      // Teachers can only read maintenance records they created
       allow read: if isOfficerOrAbove() && isActiveUser();
-      allow read: if isTeacherOrAbove() && isActiveUser() &&
-                     resource.data.createdByUid == request.auth.uid;
-
-      // Officers/admins and teachers can create maintenance reports
+      allow read: if isTeacherOrAbove() && isActiveUser() && resource.data.createdByUid == request.auth.uid;
       allow create: if isTeacherOrAbove() && isActiveUser();
-
-      // Only officers and admins can update maintenance records
       allow update: if isOfficerOrAbove() && isActiveUser();
-
-      // Only admins can delete maintenance records
       allow delete: if isAdmin() && isActiveUser();
     }
 
-    // ─── Transfers ────────────────────────────────────────────────────────────
     match /transfers/{transferId} {
       allow read: if isOfficerOrAbove() && isActiveUser();
       allow write: if isOfficerOrAbove() && isActiveUser();
     }
 
-    // ─── Activity Logs ────────────────────────────────────────────────────────
     match /activityLogs/{logId} {
-      // Only officers and admins can read activity logs (not teachers/viewers)
       allow read: if isOfficerOrAbove() && isActiveUser();
-
-      // Any authenticated active user can create log entries (the app writes these)
-      allow create: if isAuthenticated() && isActiveUser();
-
-      // Logs are immutable — nobody can update them
+      // Users may only create audit entries under their own identity.
+      allow create: if isActiveUser() && request.resource.data.userId == request.auth.uid && request.resource.data.userEmail == request.auth.token.email && request.resource.data.userRole == userRole() && request.resource.data.timestamp == request.time;
       allow update: if false;
-
-      // Only admins can purge logs
       allow delete: if isAdmin();
     }
 
-    // ─── Settings ─────────────────────────────────────────────────────────────
     match /settings/{settingId} {
-      // Officers and above can read settings (needed for school name display etc.)
       allow read: if isOfficerOrAbove() && isActiveUser();
-
-      // Only admins can write settings
       allow write: if isAdmin() && isActiveUser();
     }
 
-    // ─── Default deny ─────────────────────────────────────────────────────────
-    // Any collection not explicitly listed above is denied
     match /{document=**} {
       allow read, write: if false;
     }
