@@ -1,0 +1,599 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — School Inventory System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+</head>
+<body>
+<div class="app-layout" id="appLayout">
+  <!-- Sidebar + Header injected by JS -->
+  <div class="main-content" id="mainContent">
+    <div class="page-content">
+      <!-- Loading state -->
+      <div id="pageLoading" class="loading-overlay">
+        <div class="spinner spinner-lg"></div>
+        <p>Loading dashboard…</p>
+      </div>
+
+      <!-- Dashboard content (hidden until loaded) -->
+      <div id="dashboardContent" style="display:none">
+
+        <div class="page-header">
+          <div class="page-header-left">
+            <h2>Dashboard</h2>
+            <p class="subtitle" id="dashboardGreeting">Good morning! Here's an overview of your inventory.</p>
+          </div>
+          <div class="page-header-actions">
+            <a href="inventory.html?action=add" class="btn btn-primary">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Item
+            </a>
+          </div>
+        </div>
+
+        <!-- Summary Stats -->
+        <div class="stat-cards" id="statCards">
+          <div class="stat-card">
+            <div class="stat-card-icon blue">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+            </div>
+            <div>
+              <div class="stat-card-value" id="statTotal">—</div>
+              <div class="stat-card-label">Total Items</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon green">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div>
+              <div class="stat-card-value" id="statAvailable">—</div>
+              <div class="stat-card-label">Available</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon cyan">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            </div>
+            <div>
+              <div class="stat-card-value" id="statBorrowed">—</div>
+              <div class="stat-card-label">Borrowed</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon yellow">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+            </div>
+            <div>
+              <div class="stat-card-value" id="statMaintenance">—</div>
+              <div class="stat-card-label">Under Maintenance</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon red">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12" y2="17.5"/></svg>
+            </div>
+            <div>
+              <div class="stat-card-value" id="statDamaged">—</div>
+              <div class="stat-card-label">Damaged</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon purple">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+            </div>
+            <div>
+              <div class="stat-card-value" id="statMissing">—</div>
+              <div class="stat-card-label">Missing</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon yellow">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            </div>
+            <div>
+              <div class="stat-card-value" id="statLowStock">—</div>
+              <div class="stat-card-label">Low Stock</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon red">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <div>
+              <div class="stat-card-value" id="statOverdue">—</div>
+              <div class="stat-card-label">Overdue Returns</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="card mb-20">
+          <div class="card-header">
+            <h3 class="card-title">Quick Actions</h3>
+          </div>
+          <div class="card-body">
+            <div class="quick-actions">
+              <a href="inventory.html?action=add" class="quick-action-btn" aria-label="Add inventory item">
+                <div class="quick-action-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                </div>
+                <span class="quick-action-label">Add Item</span>
+              </a>
+              <a href="borrowing.html?action=borrow" class="quick-action-btn" aria-label="Record a borrow">
+                <div class="quick-action-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </div>
+                <span class="quick-action-label">Borrow Item</span>
+              </a>
+              <a href="borrowing.html?tab=returns" class="quick-action-btn" aria-label="Record a return">
+                <div class="quick-action-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-5.07"/></svg>
+                </div>
+                <span class="quick-action-label">Return Item</span>
+              </a>
+              <a href="maintenance.html?action=report" class="quick-action-btn" aria-label="Report damage">
+                <div class="quick-action-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg>
+                </div>
+                <span class="quick-action-label">Report Damage</span>
+              </a>
+              <a href="inventory.html" class="quick-action-btn" aria-label="View inventory">
+                <div class="quick-action-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
+                </div>
+                <span class="quick-action-label">View Inventory</span>
+              </a>
+              <a href="reports.html" class="quick-action-btn" aria-label="View reports">
+                <div class="quick-action-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                </div>
+                <span class="quick-action-label">Reports</span>
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Charts + Activity -->
+        <div class="dashboard-grid">
+          <!-- Inventory by Category -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Inventory by Category</h3>
+            </div>
+            <div class="card-body">
+              <div class="chart-container">
+                <canvas id="categoryChart" aria-label="Inventory by category chart" role="img"></canvas>
+              </div>
+              <div id="categoryChartEmpty" class="empty-state" style="display:none; padding: 32px 16px;">
+                <p>No category data available.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Inventory Condition -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Inventory Condition</h3>
+            </div>
+            <div class="card-body">
+              <div class="chart-container">
+                <canvas id="conditionChart" aria-label="Inventory condition chart" role="img"></canvas>
+              </div>
+              <div id="conditionChartEmpty" class="empty-state" style="display:none; padding: 32px 16px;">
+                <p>No condition data available.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Low Stock Items -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Low Stock Items</h3>
+              <a href="inventory.html?filter=low-stock" class="btn btn-sm btn-secondary">View All</a>
+            </div>
+            <div class="card-body p-0">
+              <div id="lowStockList">
+                <div class="loading-overlay" style="padding:32px">
+                  <div class="spinner"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Activity -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Recent Activity</h3>
+              <a href="logs.html" class="btn btn-sm btn-secondary">View All</a>
+            </div>
+            <div class="card-body">
+              <div id="recentActivity">
+                <div class="loading-overlay" style="padding:20px">
+                  <div class="spinner"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Overdue Borrowings -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Overdue Borrowings</h3>
+              <a href="borrowing.html?tab=overdue" class="btn btn-sm btn-secondary">View All</a>
+            </div>
+            <div class="card-body p-0">
+              <div id="overdueList">
+                <div class="loading-overlay" style="padding:32px">
+                  <div class="spinner"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent Inventory -->
+          <div class="card">
+            <div class="card-header">
+              <h3 class="card-title">Recent Inventory</h3>
+              <a href="inventory.html" class="btn btn-sm btn-secondary">View All</a>
+            </div>
+            <div class="card-body p-0">
+              <div id="recentInventory">
+                <div class="loading-overlay" style="padding:32px">
+                  <div class="spinner"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /dashboardContent -->
+    </div><!-- /page-content -->
+  </div><!-- /main-content -->
+</div><!-- /app-layout -->
+
+<div id="toastContainer" class="toast-container" aria-live="polite" aria-atomic="false"></div>
+
+<script type="module">
+  import {
+    getFirestore,
+    collection, query, where, orderBy, limit,
+    getDocs, getDoc, doc, onSnapshot
+  } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js';
+  import { app } from './js/firebase-config.js';
+  import { requireAuth, initSidebar, getCurrentUserData } from './js/auth.js';
+  import { renderLayout } from './js/layout.js';
+  import { formatDateTime, timeAgo, formatCurrency, showToast } from './js/utils.js';
+
+  const db = getFirestore(app);
+
+  // Inject layout
+  const { sidebarHTML, headerHTML } = renderLayout('Dashboard', 'dashboard');
+  document.getElementById('appLayout').insertAdjacentHTML('afterbegin', sidebarHTML);
+  document.getElementById('mainContent').insertAdjacentHTML('afterbegin', headerHTML);
+
+  // Auth guard
+  const { userData } = await requireAuth();
+  initSidebar('dashboard');
+
+  // Greeting
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('dashboardGreeting').textContent =
+    `${greeting}, ${userData.name || 'there'}! Here's your inventory overview.`;
+
+  // Load school name from settings
+  try {
+    const settingsDoc = await getDoc(doc(db, 'settings', 'general'));
+    if (settingsDoc.exists()) {
+      const schoolName = settingsDoc.data().schoolName;
+      if (schoolName) {
+        document.getElementById('schoolNameSidebar').textContent = schoolName;
+        document.title = `Dashboard — ${schoolName}`;
+      }
+    }
+  } catch(e) { /* ignore */ }
+
+  // Show dashboard
+  document.getElementById('pageLoading').style.display = 'none';
+  document.getElementById('dashboardContent').style.display = '';
+
+  // Load stats — all wrapped so one failure doesn't leave the page spinning
+  await loadDashboardStats().catch(e => console.warn('loadDashboardStats:', e.message));
+  await loadCharts().catch(e => console.warn('loadCharts:', e.message));
+  await loadLowStock().catch(e => console.warn('loadLowStock:', e.message));
+  await loadRecentActivity().catch(e => console.warn('loadRecentActivity:', e.message));
+  await loadOverdueBorrowings().catch(e => console.warn('loadOverdueBorrowings:', e.message));
+  await loadRecentInventory().catch(e => console.warn('loadRecentInventory:', e.message));
+
+  async function loadDashboardStats() {
+    try {
+      const snap = await getDocs(collection(db, 'inventory'));
+      let total = 0, available = 0, borrowed = 0, maintenance = 0, damaged = 0, missing = 0, lowStock = 0;
+
+      snap.forEach(d => {
+        const item = d.data();
+        total++;
+        const status = (item.status || '').toLowerCase();
+        if (status === 'available') available++;
+        else if (status === 'borrowed') borrowed++;
+        else if (status === 'under maintenance') maintenance++;
+        else if (status === 'damaged') damaged++;
+        else if (status === 'missing') missing++;
+
+        if (item.minStock && item.quantity <= item.minStock) lowStock++;
+      });
+
+      document.getElementById('statTotal').textContent = total.toLocaleString();
+      document.getElementById('statAvailable').textContent = available.toLocaleString();
+      document.getElementById('statBorrowed').textContent = borrowed.toLocaleString();
+      document.getElementById('statMaintenance').textContent = maintenance.toLocaleString();
+      document.getElementById('statDamaged').textContent = damaged.toLocaleString();
+      document.getElementById('statMissing').textContent = missing.toLocaleString();
+      document.getElementById('statLowStock').textContent = lowStock.toLocaleString();
+
+      // Overdue borrowings
+      const overdueQ = query(
+        collection(db, 'borrowings'),
+        where('status', '==', 'Borrowed')
+      );
+      const overdueSnap = await getDocs(overdueQ);
+      const now = new Date();
+      let overdue = 0;
+      overdueSnap.forEach(d => {
+        const b = d.data();
+        const ret = b.expectedReturnDate?.toDate ? b.expectedReturnDate.toDate() : new Date(b.expectedReturnDate);
+        if (ret < now) overdue++;
+      });
+      document.getElementById('statOverdue').textContent = overdue.toLocaleString();
+      if (overdue > 0) {
+        const badge = document.getElementById('overdueCount');
+        if (badge) { badge.textContent = overdue; badge.style.display = ''; }
+        document.getElementById('notifDot').style.display = '';
+      }
+    } catch(e) {
+      console.error('Stats error:', e);
+    }
+  }
+
+  async function loadCharts() {
+    try {
+      const snap = await getDocs(collection(db, 'inventory'));
+      const catCounts = {}, condCounts = { Excellent:0, Good:0, Fair:0, Damaged:0, Critical:0 };
+
+      snap.forEach(d => {
+        const item = d.data();
+        const cat = item.category || 'Uncategorized';
+        catCounts[cat] = (catCounts[cat] || 0) + 1;
+        const cond = item.condition || 'Good';
+        if (condCounts.hasOwnProperty(cond)) condCounts[cond]++;
+        else condCounts['Good']++;
+      });
+
+      if (snap.empty) {
+        document.getElementById('categoryChartEmpty').style.display = '';
+        document.getElementById('conditionChartEmpty').style.display = '';
+        document.querySelector('#categoryChart').style.display = 'none';
+        document.querySelector('#conditionChart').style.display = 'none';
+        return;
+      }
+
+      // Category chart (horizontal bar)
+      const catLabels = Object.keys(catCounts);
+      const catData = Object.values(catCounts);
+      const catColors = ['#2563eb','#16a34a','#d97706','#7c3aed','#0891b2','#dc2626','#ea580c','#059669'];
+
+      new Chart(document.getElementById('categoryChart'), {
+        type: 'bar',
+        data: {
+          labels: catLabels,
+          datasets: [{
+            label: 'Items',
+            data: catData,
+            backgroundColor: catColors.slice(0, catLabels.length).map(c => c + 'cc'),
+            borderColor: catColors.slice(0, catLabels.length),
+            borderWidth: 1.5,
+            borderRadius: 4
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          indexAxis: 'y',
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { color: '#f1f5f9' }, ticks: { precision: 0 } },
+            y: { grid: { display: false } }
+          }
+        }
+      });
+
+      // Condition chart (doughnut)
+      const condColors = ['#16a34a','#2563eb','#d97706','#dc2626','#991b1b'];
+      const condLabels = Object.keys(condCounts);
+      const condData = Object.values(condCounts);
+
+      new Chart(document.getElementById('conditionChart'), {
+        type: 'doughnut',
+        data: {
+          labels: condLabels,
+          datasets: [{
+            data: condData,
+            backgroundColor: condColors.map(c => c + 'cc'),
+            borderColor: condColors,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { padding: 14, boxWidth: 12, font: { size: 12 } }
+            }
+          },
+          cutout: '65%'
+        }
+      });
+
+    } catch(e) {
+      console.error('Charts error:', e);
+    }
+  }
+
+  async function loadLowStock() {
+    const el = document.getElementById('lowStockList');
+    try {
+      const snap = await getDocs(collection(db, 'inventory'));
+      const lowItems = [];
+      snap.forEach(d => {
+        const item = { id: d.id, ...d.data() };
+        if (item.minStock && item.quantity <= item.minStock) lowItems.push(item);
+      });
+
+      if (lowItems.length === 0) {
+        el.innerHTML = `<div class="empty-state" style="padding:32px 16px">
+          <p style="color:var(--text-muted);font-size:.875rem;">No low stock items. All supplies are sufficient.</p>
+        </div>`;
+        return;
+      }
+
+      el.innerHTML = `<div style="padding:8px 0;">` + lowItems.slice(0,6).map(item => {
+        const pct = Math.round((item.quantity / (item.minStock * 2)) * 100);
+        const fillClass = item.quantity === 0 ? 'empty' : 'low';
+        return `<div style="padding:10px 20px;border-bottom:1px solid var(--border);">
+          <div class="d-flex align-center justify-between mb-4">
+            <span style="font-size:.875rem;font-weight:600;">${item.name}</span>
+            <span class="badge badge-warning" style="font-size:.7rem;">${item.quantity} / min ${item.minStock} ${item.unit || ''}</span>
+          </div>
+          <div class="stock-bar-wrap">
+            <div class="stock-bar-bg"><div class="stock-bar-fill ${fillClass}" style="width:${Math.min(pct,100)}%"></div></div>
+          </div>
+        </div>`;
+      }).join('') + `</div>`;
+    } catch(e) {
+      el.innerHTML = `<div class="empty-state" style="padding:32px"><p>Unable to load data.</p></div>`;
+    }
+  }
+
+  async function loadRecentActivity() {
+    const el = document.getElementById('recentActivity');
+    try {
+      const q = query(collection(db, 'activityLogs'), orderBy('timestamp', 'desc'), limit(8));
+      const snap = await getDocs(q);
+
+      if (snap.empty) {
+        el.innerHTML = `<div class="empty-state" style="padding:16px">
+          <p style="color:var(--text-muted);font-size:.875rem;">No recent activity yet.</p>
+        </div>`;
+        return;
+      }
+
+      const ACTION_ICONS = {
+        'Added Item': '<path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2"/>',
+        'Updated Item': '<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="1.5"/>',
+        'Deleted Item': '<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" stroke="currentColor" stroke-width="1.5"/>',
+        'Borrowed Item': '<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="1.5"/><polyline points="14 2 14 8 20 8" stroke="currentColor" stroke-width="1.5"/>',
+        'Returned Item': '<polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-5.07" stroke="currentColor" stroke-width="1.5"/>',
+        'Reported Damage': '<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12" y2="17.5"/>',
+      };
+
+      el.innerHTML = `<div class="timeline">` +
+        snap.docs.map(d => {
+          const log = d.data();
+          const iconPath = ACTION_ICONS[log.action] || '<circle cx="12" cy="12" r="10"/>';
+          return `<div class="timeline-item">
+            <div class="timeline-dot">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">${iconPath}</svg>
+            </div>
+            <div class="timeline-content">
+              <div class="timeline-title">${log.action || 'Action'}</div>
+              <div class="timeline-desc">${log.description || (log.itemName ? log.itemName : '')}</div>
+              <div class="timeline-time">${log.userName || 'System'} · ${timeAgo(log.timestamp)}</div>
+            </div>
+          </div>`;
+        }).join('') + `</div>`;
+    } catch(e) {
+      el.innerHTML = `<div class="empty-state" style="padding:16px"><p>Unable to load activity.</p></div>`;
+    }
+  }
+
+  async function loadOverdueBorrowings() {
+    const el = document.getElementById('overdueList');
+    try {
+      const q = query(collection(db, 'borrowings'), where('status', '==', 'Borrowed'), limit(20));
+      const snap = await getDocs(q);
+      const now = new Date();
+      const overdue = [];
+      snap.forEach(d => {
+        const b = { id: d.id, ...d.data() };
+        const ret = b.expectedReturnDate?.toDate ? b.expectedReturnDate.toDate() : new Date(b.expectedReturnDate);
+        if (ret < now) overdue.push({ ...b, dueDate: ret });
+      });
+
+      if (overdue.length === 0) {
+        el.innerHTML = `<div class="empty-state" style="padding:32px 16px">
+          <p style="color:var(--text-muted);font-size:.875rem;">No overdue borrowings.</p>
+        </div>`;
+        return;
+      }
+
+      el.innerHTML = `<div>` + overdue.slice(0,5).map(b => {
+        const days = Math.floor((now - b.dueDate) / 86400000);
+        return `<div style="padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div>
+            <div style="font-size:.875rem;font-weight:600;">${b.itemName || 'Unknown Item'}</div>
+            <div style="font-size:.8125rem;color:var(--text-secondary);">${b.borrowerName || 'Unknown'}</div>
+          </div>
+          <span class="badge badge-danger">${days}d overdue</span>
+        </div>`;
+      }).join('') + `</div>`;
+    } catch(e) {
+      el.innerHTML = `<div class="empty-state" style="padding:32px"><p>Unable to load data.</p></div>`;
+    }
+  }
+
+  async function loadRecentInventory() {
+    const el = document.getElementById('recentInventory');
+    try {
+      const q = query(collection(db, 'inventory'), orderBy('createdAt', 'desc'), limit(5));
+      const snap = await getDocs(q);
+
+      if (snap.empty) {
+        el.innerHTML = `<div class="empty-state" style="padding:32px 16px">
+          <p style="color:var(--text-muted);font-size:.875rem;">No inventory items yet.</p>
+          <a href="inventory.html?action=add" class="btn btn-primary btn-sm mt-12">Add First Item</a>
+        </div>`;
+        return;
+      }
+
+      const STATUS_CLASS = {
+        'Available': 'status-available', 'Borrowed': 'status-borrowed',
+        'Damaged': 'status-damaged', 'Missing': 'status-missing',
+        'Under Maintenance': 'status-maintenance', 'Retired': 'status-retired'
+      };
+
+      el.innerHTML = snap.docs.map(d => {
+        const item = d.data();
+        const cls = STATUS_CLASS[item.status] || 'badge-secondary';
+        return `<div style="padding:12px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <div style="min-width:0;flex:1;">
+            <div style="font-size:.875rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${item.name}</div>
+            <div style="font-size:.8125rem;color:var(--text-secondary);">${item.assetCode || '—'} · ${item.location || '—'}</div>
+          </div>
+          <span class="badge ${cls}">${item.status || 'Unknown'}</span>
+        </div>`;
+      }).join('');
+    } catch(e) {
+      el.innerHTML = `<div class="empty-state" style="padding:32px"><p>Unable to load data.</p></div>`;
+    }
+  }
+</script>
+</body>
+</html>

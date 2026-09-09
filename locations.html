@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Locations — School Inventory System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body>
+<div class="app-layout" id="appLayout">
+  <div class="main-content" id="mainContent">
+    <div class="page-content">
+      <div id="pageLoading" class="loading-overlay"><div class="spinner spinner-lg"></div><p>Loading…</p></div>
+      <div id="pageContent" style="display:none">
+        <div class="page-header">
+          <div>
+            <h2>Locations & Rooms</h2>
+            <p class="subtitle">Manage rooms and storage locations</p>
+          </div>
+          <div class="page-header-actions">
+            <button class="btn btn-primary" id="addLocBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add Location
+            </button>
+          </div>
+        </div>
+
+        <!-- Summary cards -->
+        <div class="stat-cards mb-20" id="locationStats" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))"></div>
+
+        <div class="card">
+          <div class="toolbar">
+            <div class="search-input-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="search" class="search-input" id="locSearch" placeholder="Search locations…" aria-label="Search locations" />
+            </div>
+          </div>
+          <div class="table-wrapper">
+            <table aria-label="Locations table">
+              <thead>
+                <tr>
+                  <th>Location Name</th>
+                  <th>Building</th>
+                  <th>Description</th>
+                  <th>Person Responsible</th>
+                  <th>Items</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="locTableBody">
+                <tr><td colspan="6"><div class="loading-overlay"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Location Modal -->
+<div class="modal-backdrop" id="locModal" role="dialog" aria-modal="true" aria-labelledby="locModalTitle">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="locModalTitle">Add Location</div>
+      <button class="modal-close" onclick="closeLocModal()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="locId" />
+      <div class="form-row mb-16">
+        <div class="form-group">
+          <label class="form-label" for="locName">Location Name <span class="required">*</span></label>
+          <input type="text" id="locName" class="form-control" placeholder="e.g. Computer Laboratory" />
+          <span class="form-error" id="locNameError">Name is required.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="locBuilding">Building</label>
+          <input type="text" id="locBuilding" class="form-control" placeholder="e.g. Main Building" />
+        </div>
+      </div>
+      <div class="form-group mb-16">
+        <label class="form-label" for="locDesc">Description</label>
+        <textarea id="locDesc" class="form-control" rows="2" placeholder="Optional description…"></textarea>
+      </div>
+      <div class="form-group mb-0">
+        <label class="form-label" for="locPerson">Person Responsible</label>
+        <input type="text" id="locPerson" class="form-control" placeholder="Name of person in charge" />
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeLocModal()">Cancel</button>
+      <button class="btn btn-primary" id="saveLocBtn">Save Location</button>
+    </div>
+  </div>
+</div>
+
+<div id="toastContainer" class="toast-container"></div>
+
+<script type="module">
+  import {
+    getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc,
+    doc, serverTimestamp, query, orderBy
+  } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js';
+  import { app } from './js/firebase-config.js';
+  import { requireAuth, initSidebar, hasPermission } from './js/auth.js';
+  import { renderLayout } from './js/layout.js';
+  import { showToast, showConfirm, openModal, closeModal, debounce, getFirestoreError } from './js/utils.js';
+
+  const db = getFirestore(app);
+
+  const { sidebarHTML, headerHTML } = renderLayout('Locations', 'locations',
+    '<span>Home</span><span class="breadcrumb-sep">›</span><span>Locations</span>');
+  document.getElementById('appLayout').insertAdjacentHTML('afterbegin', sidebarHTML);
+  document.getElementById('mainContent').insertAdjacentHTML('afterbegin', headerHTML);
+
+  await requireAuth();
+  initSidebar('locations');
+
+  document.getElementById('pageLoading').style.display = 'none';
+  document.getElementById('pageContent').style.display = '';
+
+  if (!hasPermission('locations.manage')) {
+    document.getElementById('addLocBtn').style.display = 'none';
+  }
+
+  let locations = [];
+  let editingId = null;
+
+  const DEFAULT_LOCS = [
+    { name: 'Computer Laboratory', building: 'Main Building', description: 'ICT computer room' },
+    { name: 'Science Laboratory', building: 'Main Building', description: 'Science experiments room' },
+    { name: 'Library', building: 'Main Building', description: 'School library' },
+    { name: 'Faculty Room', building: 'Main Building', description: 'Teachers faculty room' },
+    { name: "Registrar's Office", building: 'Main Building', description: '' },
+    { name: "Principal's Office", building: 'Main Building', description: '' },
+    { name: 'Storage Room', building: 'Main Building', description: 'General storage area' },
+    { name: 'Classroom 101', building: 'Main Building', description: '' },
+    { name: 'Classroom 102', building: 'Main Building', description: '' },
+    { name: 'Gymnasium', building: 'Gymnasium Building', description: 'Multi-purpose gymnasium' },
+    { name: 'Clinic', building: 'Main Building', description: 'School health clinic' },
+  ];
+
+  async function loadLocations() {
+    try {
+      const snap = await getDocs(query(collection(db, 'locations'), orderBy('name')));
+      if (snap.empty) {
+        for (const loc of DEFAULT_LOCS) {
+          await addDoc(collection(db, 'locations'), { ...loc, createdAt: serverTimestamp() });
+        }
+        return loadLocations();
+      }
+
+      const invSnap = await getDocs(collection(db, 'inventory'));
+      const locCount = {};
+      invSnap.forEach(d => {
+        const loc = d.data().location || '';
+        locCount[loc] = (locCount[loc] || 0) + 1;
+      });
+
+      locations = snap.docs.map(d => ({ id: d.id, ...d.data(), count: locCount[d.data().name] || 0 }));
+
+      // Stats
+      const statsEl = document.getElementById('locationStats');
+      statsEl.innerHTML = `
+        <div class="stat-card">
+          <div class="stat-card-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+          <div><div class="stat-card-value">${locations.length}</div><div class="stat-card-label">Total Locations</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div>
+          <div><div class="stat-card-value">${Object.values(locCount).reduce((a,b)=>a+b,0)}</div><div class="stat-card-label">Items Assigned</div></div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-card-icon yellow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+          <div><div class="stat-card-value">${locations.filter(l => l.count === 0).length}</div><div class="stat-card-label">Empty Locations</div></div>
+        </div>
+      `;
+
+      renderLocations(locations);
+    } catch(e) {
+      showToast(getFirestoreError(e), 'error');
+    }
+  }
+
+  await loadLocations().catch(e => showToast(getFirestoreError(e), 'error'));
+
+  function renderLocations(items) {
+    const tbody = document.getElementById('locTableBody');
+    const canManage = hasPermission('locations.manage');
+    if (items.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state"><h3>No locations found</h3></div></td></tr>`;
+      return;
+    }
+    tbody.innerHTML = items.map(loc => `
+      <tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:34px;height:34px;border-radius:var(--radius);background:var(--primary-light);display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary)" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+            </div>
+            <strong>${loc.name}</strong>
+          </div>
+        </td>
+        <td style="color:var(--text-secondary);">${loc.building || '—'}</td>
+        <td style="color:var(--text-secondary);font-size:.875rem;">${loc.description || '—'}</td>
+        <td style="color:var(--text-secondary);">${loc.personResponsible || '—'}</td>
+        <td>
+          <a href="inventory.html?location=${encodeURIComponent(loc.name)}" style="text-decoration:none;">
+            <span class="badge badge-primary">${loc.count} item${loc.count !== 1 ? 's' : ''}</span>
+          </a>
+        </td>
+        <td>
+          <div class="table-actions">
+            ${canManage ? `
+            <button class="btn btn-ghost btn-icon btn-sm" onclick="openEditLoc('${loc.id}')" title="Edit" aria-label="Edit ${loc.name}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="btn btn-ghost btn-icon btn-sm" style="color:var(--danger)" onclick="deleteLoc('${loc.id}','${loc.name.replace(/'/g,"\\'")}',${loc.count})" title="Delete" aria-label="Delete ${loc.name}">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            </button>` : '<span class="text-muted text-sm">—</span>'}
+          </div>
+        </td>
+      </tr>`).join('');
+  }
+
+  document.getElementById('locSearch').addEventListener('input', debounce(e => {
+    const q = e.target.value.toLowerCase();
+    renderLocations(q ? locations.filter(l =>
+      l.name.toLowerCase().includes(q) ||
+      (l.building||'').toLowerCase().includes(q) ||
+      (l.description||'').toLowerCase().includes(q)
+    ) : locations);
+  }, 250));
+
+  window.openEditLoc = function(id) {
+    const loc = locations.find(l => l.id === id);
+    if (!loc) return;
+    editingId = id;
+    document.getElementById('locModalTitle').textContent = 'Edit Location';
+    document.getElementById('locId').value = id;
+    document.getElementById('locName').value = loc.name;
+    document.getElementById('locBuilding').value = loc.building || '';
+    document.getElementById('locDesc').value = loc.description || '';
+    document.getElementById('locPerson').value = loc.personResponsible || '';
+    document.getElementById('locNameError').style.display = 'none';
+    openModal('locModal');
+  };
+
+  document.getElementById('addLocBtn').addEventListener('click', () => {
+    editingId = null;
+    document.getElementById('locModalTitle').textContent = 'Add Location';
+    document.getElementById('locId').value = '';
+    ['locName','locBuilding','locDesc','locPerson'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('locNameError').style.display = 'none';
+    openModal('locModal');
+  });
+
+  window.closeLocModal = () => closeModal('locModal');
+
+  document.getElementById('saveLocBtn').addEventListener('click', async () => {
+    const name = document.getElementById('locName').value.trim();
+    const building = document.getElementById('locBuilding').value.trim();
+    const desc = document.getElementById('locDesc').value.trim();
+    const person = document.getElementById('locPerson').value.trim();
+
+    if (!name) {
+      document.getElementById('locNameError').style.display = 'block';
+      return;
+    }
+    document.getElementById('locNameError').style.display = 'none';
+
+    const btn = document.getElementById('saveLocBtn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      const data = { name, building, description: desc, personResponsible: person };
+      if (editingId) {
+        await updateDoc(doc(db, 'locations', editingId), { ...data, updatedAt: serverTimestamp() });
+        showToast('Location updated.', 'success');
+      } else {
+        await addDoc(collection(db, 'locations'), { ...data, createdAt: serverTimestamp() });
+        showToast('Location added.', 'success');
+      }
+      closeModal('locModal');
+      await loadLocations();
+    } catch(e) {
+      showToast(getFirestoreError(e), 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Save Location';
+    }
+  });
+
+  window.deleteLoc = async function(id, name, count) {
+    if (count > 0) {
+      const ok = await showConfirm({ title: 'Location Has Items', message: `"${name}" has ${count} item(s). Continue deleting?`, confirmText: 'Delete Anyway', type: 'warning' });
+      if (!ok) return;
+    } else {
+      const ok = await showConfirm({ title: `Delete "${name}"?`, message: 'This location will be permanently deleted.', confirmText: 'Delete', type: 'danger' });
+      if (!ok) return;
+    }
+    try {
+      await deleteDoc(doc(db, 'locations', id));
+      showToast('Location deleted.', 'success');
+      await loadLocations();
+    } catch(e) { showToast(getFirestoreError(e), 'error'); }
+  };
+</script>
+</body>
+</html>
+

@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Users — School Inventory System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body>
+<div class="app-layout" id="appLayout">
+  <div class="main-content" id="mainContent">
+    <div class="page-content">
+      <div id="pageLoading" class="loading-overlay"><div class="spinner spinner-lg"></div><p>Loading…</p></div>
+      <div id="pageContent" style="display:none">
+        <div class="page-header">
+          <div>
+            <h2>User Management</h2>
+            <p class="subtitle">Manage system users and permissions</p>
+          </div>
+          <div class="page-header-actions">
+            <button class="btn btn-primary" id="inviteUserBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              Add User
+            </button>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stat-cards mb-20" style="grid-template-columns:repeat(auto-fill,minmax(155px,1fr))">
+          <div class="stat-card"><div class="stat-card-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div><div><div class="stat-card-value" id="uTotal">—</div><div class="stat-card-label">Total Users</div></div></div>
+          <div class="stat-card"><div class="stat-card-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div><div><div class="stat-card-value" id="uActive">—</div><div class="stat-card-label">Active</div></div></div>
+          <div class="stat-card"><div class="stat-card-icon red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg></div><div><div class="stat-card-value" id="uDisabled">—</div><div class="stat-card-label">Disabled</div></div></div>
+          <div class="stat-card"><div class="stat-card-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></div><div><div class="stat-card-value" id="uAdmins">—</div><div class="stat-card-label">Administrators</div></div></div>
+        </div>
+
+        <div class="card">
+          <div class="toolbar">
+            <div class="search-input-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="search" class="search-input" id="userSearch" placeholder="Search users…" aria-label="Search users" />
+            </div>
+            <select class="filter-select" id="roleFilter" aria-label="Filter by role">
+              <option value="">All Roles</option>
+              <option value="admin">Administrator</option>
+              <option value="officer">Inventory Officer</option>
+              <option value="teacher">Teacher / Staff</option>
+              <option value="viewer">Viewer</option>
+            </select>
+            <select class="filter-select" id="statusFilter" aria-label="Filter by status">
+              <option value="">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="disabled">Disabled</option>
+            </select>
+          </div>
+
+          <div class="table-wrapper">
+            <table class="responsive-table" aria-label="Users table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Department</th>
+                  <th>Status</th>
+                  <th>Created</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="usersTableBody">
+                <tr><td colspan="7"><div class="loading-overlay"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- User Edit Modal -->
+<div class="modal-backdrop" id="userModal" role="dialog" aria-modal="true" aria-labelledby="userModalTitle">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="userModalTitle">Edit User</div>
+      <button class="modal-close" id="closeUserModalBtn" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="editUserId" />
+      <div class="form-row mb-16">
+        <div class="form-group">
+          <label class="form-label" for="editUserName">Full Name</label>
+          <input type="text" id="editUserName" class="form-control" placeholder="Full name" autocomplete="off" />
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="editUserDept">Department</label>
+          <input type="text" id="editUserDept" class="form-control" placeholder="Department" autocomplete="off" />
+        </div>
+      </div>
+      <div class="form-row mb-0">
+        <div class="form-group">
+          <label class="form-label" for="editUserRole">Role <span class="required">*</span></label>
+          <select id="editUserRole" class="form-control">
+            <option value="admin">Administrator</option>
+            <option value="officer">Inventory Officer</option>
+            <option value="teacher">Teacher / Staff</option>
+            <option value="viewer">Viewer</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="editUserStatus">Account Status</label>
+          <select id="editUserStatus" class="form-control">
+            <option value="active">Active</option>
+            <option value="disabled">Disabled</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group mt-16 mb-0">
+        <div style="padding:12px;background:var(--warning-light);border-radius:var(--radius);font-size:.875rem;color:var(--warning);">
+          ⚠ Role or status changes take effect on the user's next sign-in.
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="cancelUserModalBtn">Cancel</button>
+      <button class="btn btn-primary" id="saveUserBtn">
+        Save Changes
+        <span class="spinner spinner-sm" id="saveUserSpin" style="display:none;border-top-color:#fff;"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Add / Invite User Modal -->
+<div class="modal-backdrop" id="inviteModal" role="dialog" aria-modal="true" aria-labelledby="inviteModalTitle">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="inviteModalTitle">Add User Record</div>
+        <div class="modal-subtitle">Pre-configure a user profile</div>
+      </div>
+      <button class="modal-close" id="closeInviteModalBtn" aria-label="Close">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row mb-16">
+        <div class="form-group">
+          <label class="form-label" for="inviteEmail">Email Address <span class="required">*</span></label>
+          <input type="email" id="inviteEmail" class="form-control" placeholder="user@school.edu.ph" autocomplete="off" />
+          <span class="form-error" id="inviteEmailErr">Valid email required.</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="inviteName">Full Name</label>
+          <input type="text" id="inviteName" class="form-control" placeholder="User's full name" autocomplete="off" />
+        </div>
+      </div>
+      <div class="form-row mb-16">
+        <div class="form-group">
+          <label class="form-label" for="inviteRole">Role</label>
+          <select id="inviteRole" class="form-control">
+            <option value="viewer">Viewer</option>
+            <option value="teacher">Teacher / Staff</option>
+            <option value="officer">Inventory Officer</option>
+            <option value="admin">Administrator</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="inviteDept">Department</label>
+          <input type="text" id="inviteDept" class="form-control" placeholder="e.g. ICT" autocomplete="off" />
+        </div>
+      </div>
+      <div class="form-group mb-0">
+        <div style="padding:12px;background:var(--info-light);border-radius:var(--radius);font-size:.875rem;color:var(--info);">
+          ℹ This creates a user profile in Firestore. The user must also have a Firebase Auth account with the same email to log in.
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" id="cancelInviteModalBtn">Cancel</button>
+      <button class="btn btn-primary" id="saveInviteBtn">
+        Create User Record
+        <span class="spinner spinner-sm" id="saveInviteSpin" style="display:none;border-top-color:#fff;"></span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div id="toastContainer" class="toast-container" aria-live="polite"></div>
+
+<script type="module">
+import {
+  getFirestore, collection, getDocs, updateDoc, setDoc,
+  doc, query, orderBy, serverTimestamp
+} from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js';
+import { app } from './js/firebase-config.js';
+import { requireAuth, initSidebar, isAdmin, hasPermission, getCurrentUser, logActivity, ROLE_LABELS } from './js/auth.js';
+import { renderLayout } from './js/layout.js';
+import { showToast, showConfirm, openModal, closeModal, formatDate, initials, debounce, getFirestoreError } from './js/utils.js';
+
+const db = getFirestore(app);
+
+const { sidebarHTML, headerHTML } = renderLayout('Users', 'users',
+  '<span>Home</span><span class="breadcrumb-sep">›</span><span>Users</span>');
+document.getElementById('appLayout').insertAdjacentHTML('afterbegin', sidebarHTML);
+document.getElementById('mainContent').insertAdjacentHTML('afterbegin', headerHTML);
+
+await requireAuth();
+initSidebar('users');
+
+document.getElementById('pageLoading').style.display = 'none';
+document.getElementById('pageContent').style.display = '';
+
+// Access guard — show denied state but don't return (return crashes module)
+if (!isAdmin()) {
+  document.getElementById('pageContent').innerHTML = `
+    <div class="empty-state" style="padding:80px 24px;text-align:center;">
+      <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      <h3>Access Denied</h3>
+      <p>Only Administrators can manage users.</p>
+      <a href="dashboard.html" class="btn btn-primary" style="margin-top:16px;">Back to Dashboard</a>
+    </div>`;
+} else {
+
+// ── All users logic runs only for admins ──────────────────────────────────────
+let allUsers = [];
+let editingUserId = null;
+
+async function loadUsers() {
+  try {
+    const snap = await getDocs(query(collection(db,'users'), orderBy('createdAt','desc')));
+    allUsers = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    let total=0, active=0, disabled=0, admins=0;
+    allUsers.forEach(u => {
+      total++;
+      if (u.status === 'disabled') disabled++; else active++;
+      if (u.role === 'admin') admins++;
+    });
+    document.getElementById('uTotal').textContent    = total;
+    document.getElementById('uActive').textContent   = active;
+    document.getElementById('uDisabled').textContent = disabled;
+    document.getElementById('uAdmins').textContent   = admins;
+
+    renderUsers(allUsers);
+  } catch(e) {
+    showToast('Unable to load users. ' + e.message, 'error');
+    document.getElementById('usersTableBody').innerHTML =
+      `<tr><td colspan="7"><div class="empty-state"><p>Error loading users. Please refresh.</p></div></td></tr>`;
+  }
+}
+
+const ROLE_BADGE = {
+  admin: 'badge-purple', officer: 'badge-primary',
+  teacher: 'badge-info', viewer: 'badge-secondary'
+};
+
+function renderUsers(users) {
+  const tbody = document.getElementById('usersTableBody');
+  if (!users.length) {
+    tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><h3>No users found</h3><p>Try adjusting the search or filters.</p></div></td></tr>`;
+    return;
+  }
+  const currentUid = getCurrentUser()?.uid;
+  tbody.innerHTML = users.map(u => {
+    const roleBadge   = ROLE_BADGE[u.role] || 'badge-secondary';
+    const statusBadge = u.status === 'disabled'
+      ? '<span class="badge badge-danger">Disabled</span>'
+      : u.status === 'pending'
+        ? '<span class="badge badge-warning">Pending</span>'
+        : '<span class="badge badge-success">Active</span>';
+    const avatarColor = u.role === 'admin' ? 'var(--purple)' : u.role === 'officer' ? 'var(--primary)' : 'var(--text-muted)';
+    const isSelf = u.id === currentUid;
+    return `<tr>
+      <td data-label="User">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div style="width:36px;height:36px;border-radius:50%;background:${avatarColor};color:#fff;display:flex;align-items:center;justify-content:center;font-size:.8125rem;font-weight:700;flex-shrink:0;">${initials(u.name||u.email||'U')}</div>
+          <div>
+            <div style="font-weight:600;">${u.name||'—'} ${isSelf?'<span class="badge badge-secondary" style="font-size:.65rem;margin-left:4px;">You</span>':''}</div>
+            <div style="font-size:.75rem;color:var(--text-muted);">${u.department||''}</div>
+          </div>
+        </div>
+      </td>
+      <td data-label="Email" style="font-size:.875rem;color:var(--text-secondary);">${u.email||'—'}</td>
+      <td data-label="Role"><span class="badge ${roleBadge}">${ROLE_LABELS[u.role]||u.role||'—'}</span></td>
+      <td data-label="Department">${u.department||'—'}</td>
+      <td data-label="Status">${statusBadge}</td>
+      <td data-label="Created" style="font-size:.875rem;color:var(--text-secondary);">${formatDate(u.createdAt)}</td>
+      <td data-label="Actions">
+        <div class="table-actions">
+          <button class="btn btn-ghost btn-icon btn-sm" data-edit="${u.id}" title="Edit user" aria-label="Edit ${u.name||u.email}">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          </button>
+          ${!isSelf ? `<button class="btn btn-ghost btn-icon btn-sm" data-toggle="${u.id}" data-status="${u.status||'active'}" data-name="${(u.name||u.email||'').replace(/"/g,'&quot;')}" title="${u.status==='disabled'?'Enable':'Disable'} user" style="color:${u.status==='disabled'?'var(--success)':'var(--warning)'};">
+            ${u.status==='disabled'
+              ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>'
+              : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="8" y1="12" x2="16" y2="12"/></svg>'}
+          </button>` : ''}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// Event delegation for table actions — no inline onclick needed
+document.getElementById('usersTableBody').addEventListener('click', async (e) => {
+  const editBtn   = e.target.closest('[data-edit]');
+  const toggleBtn = e.target.closest('[data-toggle]');
+
+  if (editBtn) {
+    openUserEdit(editBtn.dataset.edit);
+    return;
+  }
+  if (toggleBtn) {
+    const { toggle: id, status, name } = toggleBtn.dataset;
+    await doToggleStatus(id, status, name);
+  }
+});
+
+// Search + filter
+function applyFilters() {
+  const q      = document.getElementById('userSearch').value.toLowerCase();
+  const role   = document.getElementById('roleFilter').value;
+  const status = document.getElementById('statusFilter').value;
+  renderUsers(allUsers.filter(u => {
+    if (q && ![(u.name||''),(u.email||''),(u.department||'')].join(' ').toLowerCase().includes(q)) return false;
+    if (role   && u.role !== role)                    return false;
+    if (status && (u.status||'active') !== status)    return false;
+    return true;
+  }));
+}
+document.getElementById('userSearch').addEventListener('input',  debounce(applyFilters, 250));
+document.getElementById('roleFilter').addEventListener('change', applyFilters);
+document.getElementById('statusFilter').addEventListener('change', applyFilters);
+
+// ── Edit User ─────────────────────────────────────────────────────────────────
+function openUserEdit(id) {
+  const u = allUsers.find(x => x.id === id);
+  if (!u) return;
+  editingUserId = id;
+  document.getElementById('editUserId').value      = id;
+  document.getElementById('editUserName').value    = u.name       || '';
+  document.getElementById('editUserDept').value    = u.department || '';
+  document.getElementById('editUserRole').value    = u.role       || 'viewer';
+  document.getElementById('editUserStatus').value  = u.status     || 'active';
+  document.getElementById('userModalTitle').textContent = `Edit: ${u.name || u.email || 'User'}`;
+  openModal('userModal');
+}
+
+document.getElementById('closeUserModalBtn').addEventListener('click',  () => closeModal('userModal'));
+document.getElementById('cancelUserModalBtn').addEventListener('click', () => closeModal('userModal'));
+
+document.getElementById('saveUserBtn').addEventListener('click', async () => {
+  const id = editingUserId;
+  if (!id) return;
+  const btn  = document.getElementById('saveUserBtn');
+  const spin = document.getElementById('saveUserSpin');
+  btn.disabled = true; spin.style.display = 'inline-block';
+
+  try {
+    const newRole   = document.getElementById('editUserRole').value;
+    const newStatus = document.getElementById('editUserStatus').value;
+
+    // Extra frontend guard: only admin can set a user to 'admin' role
+    // (Firestore rules enforce this server-side too, but belt-and-suspenders)
+    const currentUid = getCurrentUser()?.uid;
+    if (newRole === 'admin' && !isAdmin()) {
+      showToast('Only Administrators can assign the Administrator role.', 'error');
+      btn.disabled = false; spin.style.display = 'none';
+      return;
+    }
+    // Prevent an admin from demoting themselves (could lock out all admins)
+    if (id === currentUid && newRole !== 'admin') {
+      const confirmed = await showConfirm({
+        title: 'Change Your Own Role?',
+        message: 'You are about to change your own role. This may remove your admin access immediately. Are you sure?',
+        confirmText: 'Yes, change it',
+        type: 'danger'
+      });
+      if (!confirmed) { btn.disabled = false; spin.style.display = 'none'; return; }
+    }
+
+    const updates = {
+      name:       document.getElementById('editUserName').value.trim(),
+      department: document.getElementById('editUserDept').value.trim(),
+      role:       newRole,
+      status:     newStatus,
+      updatedAt:  serverTimestamp()
+    };
+    await updateDoc(doc(db,'users',id), updates);
+    await logActivity('User Role Changed', `Updated user "${updates.name||id}" — role: ${updates.role}, status: ${updates.status}`, id, updates.name);
+    showToast('User updated successfully.', 'success');
+    closeModal('userModal');
+    await loadUsers();
+  } catch(e) {
+    showToast(getFirestoreError(e), 'error');
+  } finally {
+    btn.disabled = false; spin.style.display = 'none';
+  }
+});
+
+// ── Toggle Status ─────────────────────────────────────────────────────────────
+async function doToggleStatus(id, currentStatus, name) {
+  const enabling = currentStatus === 'disabled';
+  const ok = await showConfirm({
+    title:       enabling ? `Enable "${name}"?`  : `Disable "${name}"?`,
+    message:     enabling ? 'This user will regain access to the system.' : 'This user will lose access until re-enabled.',
+    confirmText: enabling ? 'Enable' : 'Disable',
+    type:        enabling ? 'warning' : 'danger'
+  });
+  if (!ok) return;
+  try {
+    await updateDoc(doc(db,'users',id), {
+      status: enabling ? 'active' : 'disabled',
+      updatedAt: serverTimestamp()
+    });
+    await logActivity('User Status Changed', `${enabling?'Enabled':'Disabled'} user "${name}"`, id, name);
+    showToast(`User ${enabling ? 'enabled' : 'disabled'}.`, 'success');
+    await loadUsers();
+  } catch(e) {
+    showToast(getFirestoreError(e), 'error');
+  }
+}
+
+// ── Add User Record ───────────────────────────────────────────────────────────
+document.getElementById('inviteUserBtn').addEventListener('click', () => {
+  document.getElementById('inviteEmail').value = '';
+  document.getElementById('inviteName').value  = '';
+  document.getElementById('inviteDept').value  = '';
+  document.getElementById('inviteRole').value  = 'viewer';
+  document.getElementById('inviteEmailErr').style.display = 'none';
+  openModal('inviteModal');
+});
+
+document.getElementById('closeInviteModalBtn').addEventListener('click',  () => closeModal('inviteModal'));
+document.getElementById('cancelInviteModalBtn').addEventListener('click', () => closeModal('inviteModal'));
+
+document.getElementById('saveInviteBtn').addEventListener('click', async () => {
+  const email = document.getElementById('inviteEmail').value.trim();
+  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    document.getElementById('inviteEmailErr').style.display = 'block';
+    document.getElementById('inviteEmail').focus();
+    return;
+  }
+  document.getElementById('inviteEmailErr').style.display = 'none';
+
+  const btn  = document.getElementById('saveInviteBtn');
+  const spin = document.getElementById('saveInviteSpin');
+  btn.disabled = true; spin.style.display = 'inline-block';
+
+  try {
+    const name  = document.getElementById('inviteName').value.trim();
+    const role  = document.getElementById('inviteRole').value;
+    const dept  = document.getElementById('inviteDept').value.trim();
+
+    // Use email as a deterministic doc ID so re-inviting the same email just updates
+    const docId = `invite_${email.replace(/[^a-zA-Z0-9]/g,'_')}`;
+    await setDoc(doc(db,'users', docId), {
+      email, name, role,
+      department: dept,
+      status:    'pending',
+      createdAt: serverTimestamp(),
+      invitedBy: getCurrentUser()?.uid || 'admin'
+    }, { merge: true });
+
+    await logActivity('Added User', `Created user record for "${email}"`, docId, name || email);
+    showToast(`User record created for ${email}.`, 'success');
+    closeModal('inviteModal');
+    await loadUsers();
+  } catch(e) {
+    showToast('Unable to create user record: ' + e.message, 'error');
+  } finally {
+    btn.disabled = false; spin.style.display = 'none';
+  }
+});
+
+// Load
+await loadUsers().catch(e => showToast('Unable to load users. ' + e.message, 'error'));
+
+} // end isAdmin check
+</script>
+</body>
+</html>

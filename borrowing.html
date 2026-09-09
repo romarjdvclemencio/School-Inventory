@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Borrowing — School Inventory System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body>
+<div class="app-layout" id="appLayout">
+  <div class="main-content" id="mainContent">
+    <div class="page-content">
+      <div id="pageLoading" class="loading-overlay"><div class="spinner spinner-lg"></div><p>Loading…</p></div>
+      <div id="pageContent" style="display:none">
+
+        <div class="page-header">
+          <div>
+            <h2>Borrowing</h2>
+            <p class="subtitle">Manage item borrowing and returns</p>
+          </div>
+          <div class="page-header-actions">
+            <button class="btn btn-secondary" id="exportBorrowBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export CSV
+            </button>
+            <button class="btn btn-primary" id="addBorrowBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              New Borrowing
+            </button>
+          </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="stat-cards mb-20" style="grid-template-columns:repeat(auto-fill,minmax(155px,1fr))">
+          <div class="stat-card"><div class="stat-card-icon cyan"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div><div class="stat-card-value" id="sTotal">—</div><div class="stat-card-label">Total</div></div></div>
+          <div class="stat-card"><div class="stat-card-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div><div class="stat-card-value" id="sActive">—</div><div class="stat-card-label">Active</div></div></div>
+          <div class="stat-card"><div class="stat-card-icon red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg></div><div><div class="stat-card-value" id="sOverdue">—</div><div class="stat-card-label">Overdue</div></div></div>
+          <div class="stat-card"><div class="stat-card-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-5.07"/></svg></div><div><div class="stat-card-value" id="sReturned">—</div><div class="stat-card-label">Returned</div></div></div>
+          <div class="stat-card"><div class="stat-card-icon yellow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/></svg></div><div><div class="stat-card-value" id="sPending">—</div><div class="stat-card-label">Pending</div></div></div>
+        </div>
+
+        <!-- Tabs -->
+        <div class="tabs" role="tablist">
+          <button class="tab active" role="tab" onclick="switchTab('all',this)">All</button>
+          <button class="tab" role="tab" onclick="switchTab('borrowed',this)">Active (Borrowed)</button>
+          <button class="tab" role="tab" id="overdueTab" onclick="switchTab('overdue',this)">Overdue</button>
+          <button class="tab" role="tab" onclick="switchTab('pending',this)">Pending</button>
+          <button class="tab" role="tab" onclick="switchTab('returned',this)">Returned</button>
+        </div>
+
+        <div class="card">
+          <div class="toolbar">
+            <div class="search-input-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="search" class="search-input" id="borrowSearch" placeholder="Search borrower, item…" aria-label="Search borrowings" />
+            </div>
+            <div class="toolbar-spacer"></div>
+            <span class="text-sm text-muted" id="borrowCount"></span>
+          </div>
+          <div class="table-wrapper">
+            <table class="responsive-table" aria-label="Borrowing table">
+              <thead>
+                <tr>
+                  <th>Borrowing ID</th>
+                  <th>Borrower</th>
+                  <th>Item</th>
+                  <th>Qty</th>
+                  <th>Date Borrowed</th>
+                  <th>Expected Return</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="borrowTableBody">
+                <tr><td colspan="8"><div class="loading-overlay"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="pagination" id="borrowPagination">
+            <span class="pagination-info" id="borrowPagInfo"></span>
+            <div class="pagination-btns" id="borrowPagBtns"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ NEW BORROWING MODAL ═══ -->
+<div class="modal-backdrop" id="borrowModal" role="dialog" aria-modal="true" aria-labelledby="borrowModalTitle">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title" id="borrowModalTitle">New Borrowing</div>
+      <button class="modal-close" onclick="closeBorrowModal()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <form id="borrowForm" novalidate>
+        <input type="hidden" id="borrowId" />
+        <div class="form-row mb-16">
+          <div class="form-group">
+            <label class="form-label" for="borrowerName">Borrower Name <span class="required">*</span></label>
+            <input type="text" id="borrowerName" class="form-control" placeholder="Full name of borrower" required />
+            <span class="form-error" id="borrowerNameErr">Name is required.</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="borrowerDept">Department</label>
+            <input type="text" id="borrowerDept" class="form-control" placeholder="e.g. ICT, Science" />
+          </div>
+        </div>
+        <div class="form-row mb-16">
+          <div class="form-group">
+            <label class="form-label" for="borrowItem">Item <span class="required">*</span></label>
+            <select id="borrowItem" class="form-control" required>
+              <option value="">Select item…</option>
+            </select>
+            <span class="form-error" id="borrowItemErr">Item is required.</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="borrowQty">Quantity <span class="required">*</span></label>
+            <input type="number" id="borrowQty" class="form-control" min="1" value="1" required />
+            <span class="form-error" id="borrowQtyErr">Valid quantity required.</span>
+          </div>
+        </div>
+        <div class="form-row mb-16">
+          <div class="form-group">
+            <label class="form-label" for="borrowDate">Date Borrowed <span class="required">*</span></label>
+            <input type="date" id="borrowDate" class="form-control" required />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="returnDate">Expected Return Date <span class="required">*</span></label>
+            <input type="date" id="returnDate" class="form-control" required />
+            <span class="form-error" id="returnDateErr">Return date required and must be after borrow date.</span>
+          </div>
+        </div>
+        <div class="form-row mb-16">
+          <div class="form-group">
+            <label class="form-label" for="borrowPurpose">Purpose</label>
+            <input type="text" id="borrowPurpose" class="form-control" placeholder="Reason for borrowing" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="conditionBefore">Condition Before</label>
+            <select id="conditionBefore" class="form-control">
+              <option>Excellent</option><option>Good</option>
+              <option>Fair</option><option>Damaged</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row mb-0">
+          <div class="form-group">
+            <label class="form-label" for="approvedBy">Approved By</label>
+            <input type="text" id="approvedBy" class="form-control" placeholder="Name of approving officer" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="borrowStatus">Status</label>
+            <select id="borrowStatus" class="form-control">
+              <option>Pending</option><option>Approved</option><option>Borrowed</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group mt-16 mb-0">
+          <label class="form-label" for="borrowNotes">Notes</label>
+          <textarea id="borrowNotes" class="form-control" rows="2" placeholder="Optional notes…"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeBorrowModal()">Cancel</button>
+      <button class="btn btn-primary" id="saveBorrowBtn">Save Borrowing</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ RETURN MODAL ═══ -->
+<div class="modal-backdrop" id="returnModal" role="dialog" aria-modal="true" aria-labelledby="returnModalTitle">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="returnModalTitle">Return Item</div>
+        <div class="modal-subtitle" id="returnModalSub"></div>
+      </div>
+      <button class="modal-close" onclick="closeReturnModal()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="returnBorrowId" />
+      <input type="hidden" id="returnItemId" />
+      <input type="hidden" id="returnItemQty" />
+      <div class="form-group mb-16">
+        <label class="form-label" for="actualReturnDate">Return Date <span class="required">*</span></label>
+        <input type="date" id="actualReturnDate" class="form-control" />
+      </div>
+      <div class="form-group mb-16">
+        <label class="form-label" for="conditionAfter">Condition After Return <span class="required">*</span></label>
+        <select id="conditionAfter" class="form-control">
+          <option>Excellent</option><option>Good</option>
+          <option>Fair</option><option>Damaged</option><option>Critical</option>
+        </select>
+      </div>
+      <div class="form-group mb-0">
+        <label class="form-label" for="returnNotes">Notes</label>
+        <textarea id="returnNotes" class="form-control" rows="2" placeholder="Optional return notes…"></textarea>
+      </div>
+      <div id="damageWarning" style="display:none;margin-top:12px;padding:12px;background:var(--warning-light);border-radius:var(--radius);font-size:.875rem;color:var(--warning);">
+        ⚠ The item condition indicates damage. A maintenance report will be suggested after saving.
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeReturnModal()">Cancel</button>
+      <button class="btn btn-success" id="saveReturnBtn">Confirm Return</button>
+    </div>
+  </div>
+</div>
+
+<div id="toastContainer" class="toast-container"></div>
+
+<script type="module">
+  import {
+    getFirestore, collection, getDocs, getDoc, addDoc, updateDoc,
+    doc, query, orderBy, where, serverTimestamp, runTransaction
+  } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js';
+  import { app } from './js/firebase-config.js';
+  import { requireAuth, initSidebar, getCurrentUser, getCurrentUserData, hasPermission, logActivity } from './js/auth.js';
+  import { renderLayout } from './js/layout.js';
+  import { showToast, showConfirm, openModal, closeModal, formatDate, formatDateShort, isOverdue, exportCSV, debounce, getFirestoreError } from './js/utils.js';
+
+  const db = getFirestore(app);
+
+  const { sidebarHTML, headerHTML } = renderLayout('Borrowing', 'borrowing',
+    '<span>Home</span><span class="breadcrumb-sep">›</span><span>Borrowing</span>');
+  document.getElementById('appLayout').insertAdjacentHTML('afterbegin', sidebarHTML);
+  document.getElementById('mainContent').insertAdjacentHTML('afterbegin', headerHTML);
+
+  const { userData } = await requireAuth();
+  initSidebar('borrowing');
+
+  document.getElementById('pageLoading').style.display = 'none';
+  document.getElementById('pageContent').style.display = '';
+
+  let allBorrowings = [];
+  let filteredBorrowings = [];
+  let currentPage = 1;
+  const PAGE_SIZE = 20;
+  let activeTab = 'all';
+  let availableItems = [];
+
+  // Check URL params
+  const urlParams = new URLSearchParams(window.location.search);
+  if (urlParams.get('action') === 'borrow' && hasPermission('borrowing.manage')) {
+    setTimeout(() => openBorrowModal(), 400);
+  }
+  if (urlParams.get('tab') === 'overdue') {
+    activeTab = 'overdue';
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.getElementById('overdueTab').classList.add('active');
+  }
+  if (urlParams.get('tab') === 'returns') {
+    activeTab = 'returned';
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(t => {
+      if (t.textContent.trim().startsWith('Returned')) t.classList.add('active');
+    });
+  }
+
+  if (!hasPermission('borrowing.manage')) {
+    document.getElementById('addBorrowBtn').style.display = 'none';
+  }
+
+  // Load available items for dropdown
+  async function loadAvailableItems() {
+    const snap = await getDocs(query(collection(db, 'inventory'), where('status', '==', 'Available')));
+    availableItems = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const sel = document.getElementById('borrowItem');
+    sel.innerHTML = '<option value="">Select item…</option>';
+    availableItems.forEach(i => {
+      sel.add(new Option(`${i.name} (${i.assetCode || 'no code'}) — qty: ${i.quantity}`, i.id));
+    });
+  }
+
+  async function loadBorrowings() {
+    try {
+      const q = query(collection(db, 'borrowings'), orderBy('createdAt', 'desc'));
+      const snap = await getDocs(q);
+      const now = new Date();
+      allBorrowings = snap.docs.map(d => {
+        const b = { id: d.id, ...d.data() };
+        if (b.status === 'Borrowed') {
+          const ret = b.expectedReturnDate?.toDate ? b.expectedReturnDate.toDate() : new Date(b.expectedReturnDate);
+          if (ret < now) b.isOverdue = true;
+        }
+        return b;
+      });
+
+      // Stats
+      let total=0, active=0, overdue=0, returned=0, pending=0;
+      allBorrowings.forEach(b => {
+        total++;
+        if (b.status === 'Borrowed' && !b.isOverdue) active++;
+        if (b.isOverdue) overdue++;
+        if (b.status === 'Returned') returned++;
+        if (b.status === 'Pending') pending++;
+      });
+      document.getElementById('sTotal').textContent = total;
+      document.getElementById('sActive').textContent = active;
+      document.getElementById('sOverdue').textContent = overdue;
+      document.getElementById('sReturned').textContent = returned;
+      document.getElementById('sPending').textContent = pending;
+
+      applyTab();
+    } catch(e) {
+      showToast('Unable to load borrowing data.', 'error');
+    }
+  }
+
+  window.switchTab = function(tab, el) {
+    activeTab = tab;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    currentPage = 1;
+    applyTab();
+  };
+
+  function applyTab() {
+    const now = new Date();
+    filteredBorrowings = allBorrowings.filter(b => {
+      if (activeTab === 'all')      return true;
+      if (activeTab === 'borrowed') return b.status === 'Borrowed' && !b.isOverdue;
+      if (activeTab === 'overdue')  return b.isOverdue;
+      if (activeTab === 'pending')  return b.status === 'Pending';
+      if (activeTab === 'returned') return b.status === 'Returned';
+      return true;
+    });
+    applySearch();
+  }
+
+  function applySearch() {
+    const q = document.getElementById('borrowSearch').value.toLowerCase();
+    const base = filteredBorrowings;
+    const result = q ? base.filter(b =>
+      (b.borrowerName||'').toLowerCase().includes(q) ||
+      (b.itemName||'').toLowerCase().includes(q) ||
+      (b.id||'').toLowerCase().includes(q)
+    ) : base;
+    renderBorrowings(result);
+  }
+
+  document.getElementById('borrowSearch').addEventListener('input', debounce(applySearch, 250));
+
+  function renderBorrowings(items) {
+    document.getElementById('borrowCount').textContent = `${items.length} record${items.length !== 1 ? 's' : ''}`;
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const page  = items.slice(start, start + PAGE_SIZE);
+    const tbody = document.getElementById('borrowTableBody');
+
+    if (items.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state">
+        <h3>No records found</h3>
+        <p>No borrowing records match the current filter.</p>
+        ${hasPermission('borrowing.manage') ? '<button class="btn btn-primary" onclick="openBorrowModal()">+ New Borrowing</button>' : ''}
+      </div></td></tr>`;
+      document.getElementById('borrowPagInfo').textContent = '';
+      document.getElementById('borrowPagBtns').innerHTML = '';
+      return;
+    }
+
+    const STATUS_CLS = {
+      Pending: 'badge-warning', Approved: 'badge-primary',
+      Borrowed: 'badge-info', Returned: 'badge-success',
+      Overdue: 'badge-danger', Cancelled: 'badge-secondary'
+    };
+
+    tbody.innerHTML = page.map(b => {
+      const status = b.isOverdue ? 'Overdue' : (b.status || 'Unknown');
+      const sCls = STATUS_CLS[status] || 'badge-secondary';
+      const expectedDate = b.expectedReturnDate?.toDate
+        ? formatDateShort(b.expectedReturnDate.toDate())
+        : (b.expectedReturnDate ? formatDateShort(new Date(b.expectedReturnDate)) : '—');
+      const borrowedDate = b.dateBorrowed?.toDate
+        ? formatDateShort(b.dateBorrowed.toDate())
+        : (b.dateBorrowed ? formatDateShort(new Date(b.dateBorrowed)) : '—');
+      const canReturn = hasPermission('borrowing.manage') && (b.status === 'Borrowed' || b.status === 'Approved' || b.isOverdue);
+      const canCancel = hasPermission('borrowing.manage') && (b.status === 'Pending' || b.status === 'Approved');
+
+      return `<tr ${b.isOverdue ? 'style="background:var(--danger-light);"' : ''}>
+        <td data-label="ID"><code style="font-size:.8rem;background:var(--bg);padding:2px 6px;border-radius:4px;">${b.id.slice(0,8)}…</code></td>
+        <td data-label="Borrower">
+          <div style="font-weight:600;">${b.borrowerName || '—'}</div>
+          <div style="font-size:.8rem;color:var(--text-muted);">${b.borrowerDept || ''}</div>
+        </td>
+        <td data-label="Item">
+          <div style="font-weight:500;">${b.itemName || '—'}</div>
+          <div style="font-size:.8rem;color:var(--text-muted);">${b.purpose || ''}</div>
+        </td>
+        <td data-label="Qty">${b.quantity || 1}</td>
+        <td data-label="Date Borrowed">${borrowedDate}</td>
+        <td data-label="Expected Return" style="${b.isOverdue ? 'color:var(--danger);font-weight:700;' : ''}">${expectedDate}</td>
+        <td data-label="Status"><span class="badge ${sCls}">${status}</span></td>
+        <td data-label="Actions">
+          <div class="table-actions">
+            ${canReturn ? `<button class="btn btn-success btn-sm" onclick="openReturnModal('${b.id}')" title="Record return" aria-label="Return item">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-5.07"/></svg>
+              <span>Return</span>
+            </button>` : ''}
+            ${canCancel ? `<button class="btn btn-ghost btn-icon btn-sm" style="color:var(--danger)" onclick="cancelBorrowing('${b.id}')" title="Cancel" aria-label="Cancel borrowing">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+            </button>` : ''}
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    // Pagination
+    const total = items.length;
+    const totalPages = Math.ceil(total / PAGE_SIZE);
+    const s = start + 1, e = Math.min(start + PAGE_SIZE, total);
+    document.getElementById('borrowPagInfo').textContent = `Showing ${s}–${e} of ${total}`;
+    document.getElementById('borrowPagBtns').innerHTML = totalPages > 1 ? buildPagBtns(currentPage, totalPages) : '';
+  }
+
+  function buildPagBtns(cur, total) {
+    let h = `<button class="page-btn" onclick="changeBorrowPage(${cur-1})" ${cur===1?'disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>`;
+    for (let p = Math.max(1,cur-2); p <= Math.min(total,cur+2); p++) h += `<button class="page-btn ${p===cur?'active':''}" onclick="changeBorrowPage(${p})">${p}</button>`;
+    h += `<button class="page-btn" onclick="changeBorrowPage(${cur+1})" ${cur===total?'disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>`;
+    return h;
+  }
+  window.changeBorrowPage = p => { currentPage = p; applySearch(); };
+
+  // ─── Open Borrow Modal ────────────────────────────────────────────────────
+  window.openBorrowModal = async function() {
+    if (!hasPermission('borrowing.manage')) {
+      showToast('You do not have permission to record borrowings.', 'error'); return;
+    }
+    document.getElementById('borrowModalTitle').textContent = 'New Borrowing';
+    document.getElementById('borrowId').value = '';
+    document.getElementById('borrowForm').reset();
+    document.getElementById('borrowDate').valueAsDate = new Date();
+    // Set default return date to 7 days from now
+    const ret = new Date(); ret.setDate(ret.getDate() + 7);
+    document.getElementById('returnDate').valueAsDate = ret;
+    document.getElementById('borrowStatus').value = 'Borrowed';
+    await loadAvailableItems();
+    openModal('borrowModal');
+  };
+  window.closeBorrowModal = () => closeModal('borrowModal');
+
+  // ─── Save borrowing ───────────────────────────────────────────────────────
+  document.getElementById('saveBorrowBtn').addEventListener('click', async () => {
+    const borrowerName = document.getElementById('borrowerName').value.trim();
+    const itemId       = document.getElementById('borrowItem').value;
+    const qty          = parseInt(document.getElementById('borrowQty').value) || 0;
+    const borrowDate   = document.getElementById('borrowDate').value;
+    const returnDate   = document.getElementById('returnDate').value;
+
+    let valid = true;
+    [['borrowerName','borrowerNameErr'], ['borrowItem','borrowItemErr']].forEach(([id,errId]) => {
+      const el = document.getElementById(id);
+      const err = document.getElementById(errId);
+      if (!el.value.trim()) { err.style.display='block'; valid=false; }
+      else err.style.display='none';
+    });
+    if (!qty || qty < 1) { document.getElementById('borrowQtyErr').style.display='block'; valid=false; }
+    else document.getElementById('borrowQtyErr').style.display='none';
+    if (!returnDate || (borrowDate && returnDate < borrowDate)) { document.getElementById('returnDateErr').style.display='block'; valid=false; }
+    else document.getElementById('returnDateErr').style.display='none';
+    if (!valid) return;
+
+    const item = availableItems.find(i => i.id === itemId);
+    if (!item) { showToast('Item not found.','error'); return; }
+    if (qty > item.quantity) { showToast(`Only ${item.quantity} units available.`,'error'); return; }
+
+    const btn = document.getElementById('saveBorrowBtn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+
+    try {
+      const data = {
+        borrowerName,
+        borrowerDept: document.getElementById('borrowerDept').value.trim(),
+        itemId,
+        itemName: item.name,
+        itemAssetCode: item.assetCode || '',
+        quantity: qty,
+        previousItemStatus: item.status || 'Available',
+        previousItemQty:    item.quantity,
+        dateBorrowed: new Date(borrowDate),
+        expectedReturnDate: new Date(returnDate),
+        actualReturnDate: null,
+        purpose: document.getElementById('borrowPurpose').value.trim(),
+        conditionBefore: document.getElementById('conditionBefore').value,
+        conditionAfter: null,
+        approvedBy: document.getElementById('approvedBy').value.trim(),
+        status: document.getElementById('borrowStatus').value,
+        notes: document.getElementById('borrowNotes').value.trim(),
+        recordedBy: getCurrentUserData()?.name || getCurrentUser()?.email || 'Unknown',
+        createdAt: serverTimestamp()
+      };
+
+      // Use a transaction to atomically check stock and create the borrowing record
+      // This prevents over-borrowing when multiple users borrow simultaneously
+      await runTransaction(db, async (tx) => {
+        const itemRef  = doc(db, 'inventory', itemId);
+        const itemSnap = await tx.get(itemRef);
+
+        if (!itemSnap.exists()) throw new Error('Item no longer exists.');
+
+        const liveQty = itemSnap.data().quantity ?? 0;
+        if (liveQty < qty) {
+          throw new Error(`Only ${liveQty} unit(s) available. Please refresh and try again.`);
+        }
+
+        // Create the borrowing record
+        const borrowRef = doc(collection(db, 'borrowings'));
+        tx.set(borrowRef, data);
+
+        // Deduct stock if status requires it
+        if (data.status === 'Borrowed' || data.status === 'Approved') {
+          tx.update(itemRef, {
+            status: 'Borrowed',
+            quantity: liveQty - qty,
+            updatedAt: serverTimestamp()
+          });
+        }
+      });
+
+      await logActivity('Item Borrowed', `${borrowerName} borrowed "${item.name}" (qty: ${qty})`, itemId, item.name);
+      showToast('Borrowing recorded successfully.', 'success');
+      closeModal('borrowModal');
+      await loadBorrowings();
+    } catch(e) {
+      showToast(e.message?.includes('unit') ? e.message : getFirestoreError(e), 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Save Borrowing';
+    }
+  });
+
+  // ─── Return Modal ─────────────────────────────────────────────────────────
+  window.openReturnModal = function(id) {
+    const b = allBorrowings.find(x => x.id === id);
+    if (!b) return;
+    document.getElementById('returnModalTitle').textContent = 'Return Item';
+    document.getElementById('returnModalSub').textContent = `${b.itemName || 'Item'} — borrowed by ${b.borrowerName}`;
+    document.getElementById('returnBorrowId').value = id;
+    document.getElementById('returnItemId').value = b.itemId || '';
+    document.getElementById('returnItemQty').value = b.quantity || 1;
+    document.getElementById('actualReturnDate').valueAsDate = new Date();
+    document.getElementById('conditionAfter').value = b.conditionBefore || 'Good';
+    document.getElementById('returnNotes').value = '';
+    document.getElementById('damageWarning').style.display = 'none';
+    openModal('returnModal');
+  };
+  window.closeReturnModal = () => closeModal('returnModal');
+
+  document.getElementById('conditionAfter').addEventListener('change', function() {
+    const damaged = ['Damaged','Critical'].includes(this.value);
+    document.getElementById('damageWarning').style.display = damaged ? 'block' : 'none';
+  });
+
+  document.getElementById('saveReturnBtn').addEventListener('click', async () => {
+    const borrowId   = document.getElementById('returnBorrowId').value;
+    const itemId     = document.getElementById('returnItemId').value;
+    const qty        = parseInt(document.getElementById('returnItemQty').value) || 1;
+    const returnDate = document.getElementById('actualReturnDate').value;
+    const condition  = document.getElementById('conditionAfter').value;
+    const notes      = document.getElementById('returnNotes').value.trim();
+
+    if (!returnDate) { showToast('Return date is required.','error'); return; }
+
+    const btn = document.getElementById('saveReturnBtn');
+    btn.disabled = true; btn.textContent = 'Processing…';
+
+    try {
+      const borrowing = allBorrowings.find(b => b.id === borrowId);
+      if (!borrowing) throw new Error('Borrowing record not found.');
+
+      const borrowedQty = borrowing.quantity || qty;
+      const isDamaged   = ['Damaged','Critical'].includes(condition);
+
+      // Use a transaction to atomically mark as returned and restore stock
+      await runTransaction(db, async (tx) => {
+        const borrowRef = doc(db, 'borrowings', borrowId);
+        const borrowSnap = await tx.get(borrowRef);
+        if (!borrowSnap.exists()) throw new Error('Borrowing record no longer exists.');
+        if (borrowSnap.data().status === 'Returned') throw new Error('This item has already been returned.');
+
+        // Update borrowing record
+        tx.update(borrowRef, {
+          status: 'Returned',
+          actualReturnDate: new Date(returnDate),
+          conditionAfter: condition,
+          returnNotes: notes,
+          updatedAt: serverTimestamp()
+        });
+
+        // Restore inventory stock
+        if (itemId) {
+          const itemRef  = doc(db, 'inventory', itemId);
+          const itemSnap = await tx.get(itemRef);
+          if (itemSnap.exists()) {
+            const currentQty = itemSnap.data().quantity ?? 0;
+            tx.update(itemRef, {
+              status:    isDamaged ? 'Damaged' : 'Available',
+              condition: condition,
+              // Cap so we never add back more than was originally borrowed
+              quantity:  currentQty + borrowedQty,
+              updatedAt: serverTimestamp()
+            });
+          }
+        }
+      });
+
+      await logActivity('Item Returned', `${borrowing.borrowerName} returned "${borrowing.itemName || 'item'}"`, itemId, borrowing.itemName);
+      showToast('Item returned successfully.', 'success');
+      closeModal('returnModal');
+
+      // Suggest maintenance report if item came back damaged
+      if (isDamaged) {
+        const suggest = await showConfirm({
+          title: 'Damage Detected',
+          message: `The item was returned in "${condition}" condition. Create a maintenance report?`,
+          confirmText: 'Create Report',
+          cancelText: 'Skip',
+          type: 'warning'
+        });
+        if (suggest) {
+          window.location.href = `maintenance.html?action=report&itemId=${itemId}&itemName=${encodeURIComponent(borrowing.itemName||'')}`;
+        }
+      }
+
+      await loadBorrowings();
+    } catch(e) {
+      showToast(e.message?.includes('already been') || e.message?.includes('no longer') ? e.message : getFirestoreError(e), 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Confirm Return';
+    }
+  });
+
+  // ─── Cancel borrowing ─────────────────────────────────────────────────────
+  window.cancelBorrowing = async function(id) {
+    const ok = await showConfirm({ title: 'Cancel Borrowing?', message: 'This borrowing record will be marked as Cancelled.', confirmText: 'Cancel Borrowing', type: 'warning' });
+    if (!ok) return;
+    try {
+      const b = allBorrowings.find(x => x.id === id);
+      await updateDoc(doc(db, 'borrowings', id), { status: 'Cancelled', updatedAt: serverTimestamp() });
+      if (b?.itemId) {
+        // Restore item to its condition before it was borrowed (not hardcode 'Available')
+        const restoredStatus = b.previousItemStatus || 'Available';
+        const restoredQty    = b.previousItemQty    !== undefined ? b.previousItemQty : null;
+        const itemUpdate = { status: restoredStatus, updatedAt: serverTimestamp() };
+        if (restoredQty !== null) itemUpdate.quantity = restoredQty;
+        await updateDoc(doc(db, 'inventory', b.itemId), itemUpdate);
+      }
+      showToast('Borrowing cancelled.', 'info');
+      await loadBorrowings();
+    } catch(e) {
+      showToast(getFirestoreError(e), 'error');
+    }
+  };
+
+  // ─── Export CSV ───────────────────────────────────────────────────────────
+  document.getElementById('exportBorrowBtn').addEventListener('click', () => {
+    if (allBorrowings.length === 0) { showToast('No data to export.', 'warning'); return; }
+    const headers = ['ID','Borrower','Department','Item','Asset Code','Quantity','Date Borrowed','Expected Return','Actual Return','Purpose','Condition Before','Condition After','Approved By','Status','Notes'];
+    const rows = allBorrowings.map(b => {
+      const fmtDate = v => v?.toDate ? v.toDate().toISOString().split('T')[0] : (v ? String(v) : '');
+      return [
+        b.id, b.borrowerName, b.borrowerDept, b.itemName, b.itemAssetCode,
+        b.quantity, fmtDate(b.dateBorrowed), fmtDate(b.expectedReturnDate), fmtDate(b.actualReturnDate),
+        b.purpose, b.conditionBefore, b.conditionAfter, b.approvedBy, b.status, b.notes
+      ];
+    });
+    exportCSV(`borrowings_${new Date().toISOString().split('T')[0]}.csv`, headers, rows);
+    showToast('Exported to CSV.', 'success');
+  });
+
+  document.getElementById('addBorrowBtn').addEventListener('click', openBorrowModal);
+
+  await loadBorrowings().catch(e => showToast('Unable to load borrowings. ' + e.message, 'error'));
+</script>
+</body>
+</html>

@@ -1,0 +1,54 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ─── Helper: get user role from Firestore ─────────────────────────────────
+    // Storage rules can read Firestore documents for role checks
+    function getUserRole() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role;
+    }
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isActiveUser() {
+      return isAuthenticated() &&
+             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.status == 'active';
+    }
+
+    function isOfficerOrAbove() {
+      return isAuthenticated() && getUserRole() in ['admin', 'officer'];
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && getUserRole() == 'admin';
+    }
+
+    // ─── Inventory Images ─────────────────────────────────────────────────────
+    match /inventory-images/{imageFile} {
+
+      // Any authenticated user can read/view inventory images
+      allow read: if isAuthenticated();
+
+      // Only officers and admins can upload images
+      // Enforce 5MB limit and image-only content types
+      allow create: if isOfficerOrAbove() && isActiveUser() &&
+                       request.resource.size <= 5 * 1024 * 1024 &&
+                       request.resource.contentType.matches('image/(jpeg|jpg|png|webp|gif)');
+
+      // Officers and admins can replace/overwrite images
+      allow update: if isOfficerOrAbove() && isActiveUser() &&
+                       request.resource.size <= 5 * 1024 * 1024 &&
+                       request.resource.contentType.matches('image/(jpeg|jpg|png|webp|gif)');
+
+      // Only admins can delete inventory images
+      allow delete: if isAdmin() && isActiveUser();
+    }
+
+    // ─── Default deny ─────────────────────────────────────────────────────────
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

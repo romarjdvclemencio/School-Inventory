@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Maintenance — School Inventory System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body>
+<div class="app-layout" id="appLayout">
+  <div class="main-content" id="mainContent">
+    <div class="page-content">
+      <div id="pageLoading" class="loading-overlay"><div class="spinner spinner-lg"></div><p>Loading…</p></div>
+      <div id="pageContent" style="display:none">
+
+        <div class="page-header">
+          <div>
+            <h2>Maintenance & Damage</h2>
+            <p class="subtitle">Track repairs, damage reports, and missing items</p>
+          </div>
+          <div class="page-header-actions">
+            <button class="btn btn-secondary" id="exportMaintBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export CSV
+            </button>
+            <button class="btn btn-primary" id="addReportBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              New Report
+            </button>
+          </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="stat-cards mb-20" style="grid-template-columns:repeat(auto-fill,minmax(155px,1fr))">
+          <div class="stat-card"><div class="stat-card-icon red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/></svg></div><div><div class="stat-card-value" id="mTotal">—</div><div class="stat-card-label">Total Reports</div></div></div>
+          <div class="stat-card"><div class="stat-card-icon yellow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div><div><div class="stat-card-value" id="mActive">—</div><div class="stat-card-label">Under Repair</div></div></div>
+          <div class="stat-card"><div class="stat-card-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg></div><div><div class="stat-card-value" id="mRepaired">—</div><div class="stat-card-label">Repaired</div></div></div>
+          <div class="stat-card"><div class="stat-card-icon red"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></div><div><div class="stat-card-value" id="mUnrepairable">—</div><div class="stat-card-label">Unrepairable</div></div></div>
+          <div class="stat-card"><div class="stat-card-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg></div><div><div class="stat-card-value" id="mMissing">—</div><div class="stat-card-label">Missing</div></div></div>
+        </div>
+
+        <!-- Priority tabs -->
+        <div class="tabs" role="tablist">
+          <button class="tab active" role="tab" onclick="switchPriority('all',this)">All</button>
+          <button class="tab" role="tab" onclick="switchPriority('Critical',this)" style="color:var(--danger)">Critical</button>
+          <button class="tab" role="tab" onclick="switchPriority('High',this)">High</button>
+          <button class="tab" role="tab" onclick="switchPriority('Medium',this)">Medium</button>
+          <button class="tab" role="tab" onclick="switchPriority('Low',this)">Low</button>
+        </div>
+
+        <div class="card">
+          <div class="toolbar">
+            <div class="search-input-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="search" class="search-input" id="maintSearch" placeholder="Search reports…" aria-label="Search maintenance reports" />
+            </div>
+            <select class="filter-select" id="repairStatusFilter" aria-label="Filter by repair status">
+              <option value="">All Statuses</option>
+              <option>Reported</option><option>Under Inspection</option>
+              <option>Under Repair</option><option>Repaired</option>
+              <option>Unrepairable</option><option>Retired</option><option>Missing</option>
+            </select>
+            <div class="toolbar-spacer"></div>
+            <span class="text-sm text-muted" id="maintCount"></span>
+          </div>
+
+          <div class="table-wrapper">
+            <table class="responsive-table" aria-label="Maintenance reports table">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Problem</th>
+                  <th>Reported By</th>
+                  <th>Date</th>
+                  <th>Priority</th>
+                  <th>Repair Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="maintTableBody">
+                <tr><td colspan="7"><div class="loading-overlay"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="pagination" id="maintPagination">
+            <span class="pagination-info" id="maintPagInfo"></span>
+            <div class="pagination-btns" id="maintPagBtns"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ REPORT MODAL ═══ -->
+<div class="modal-backdrop" id="reportModal" role="dialog" aria-modal="true" aria-labelledby="reportModalTitle">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title" id="reportModalTitle">New Maintenance Report</div>
+      <button class="modal-close" onclick="closeReportModal()" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>
+    <div class="modal-body">
+      <form id="reportForm" novalidate>
+        <input type="hidden" id="reportId" />
+        <div class="form-row mb-16">
+          <div class="form-group">
+            <label class="form-label" for="reportItem">Item <span class="required">*</span></label>
+            <select id="reportItem" class="form-control" required>
+              <option value="">Select item…</option>
+            </select>
+            <span class="form-error" id="reportItemErr">Item is required.</span>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="reportedBy">Reported By <span class="required">*</span></label>
+            <input type="text" id="reportedBy" class="form-control" placeholder="Your name" required />
+            <span class="form-error" id="reportedByErr">Reporter name is required.</span>
+          </div>
+        </div>
+        <div class="form-row mb-16">
+          <div class="form-group">
+            <label class="form-label" for="reportDate">Date Reported</label>
+            <input type="date" id="reportDate" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="reportPriority">Priority <span class="required">*</span></label>
+            <select id="reportPriority" class="form-control">
+              <option>Low</option><option>Medium</option><option selected>High</option><option>Critical</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-group mb-16">
+          <label class="form-label" for="reportProblem">Problem Summary <span class="required">*</span></label>
+          <input type="text" id="reportProblem" class="form-control" placeholder="e.g. Screen cracked, power supply failure" required />
+          <span class="form-error" id="reportProblemErr">Problem description is required.</span>
+        </div>
+        <div class="form-group mb-16">
+          <label class="form-label" for="reportDesc">Detailed Description</label>
+          <textarea id="reportDesc" class="form-control" rows="3" placeholder="Detailed description of the issue…"></textarea>
+        </div>
+        <div class="form-row mb-16">
+          <div class="form-group">
+            <label class="form-label" for="reportType">Report Type</label>
+            <select id="reportType" class="form-control">
+              <option>Damage</option><option>Missing</option>
+              <option>Malfunction</option><option>Wear and Tear</option><option>Other</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="reportRepairStatus">Repair Status</label>
+            <select id="reportRepairStatus" class="form-control">
+              <option>Reported</option><option>Under Inspection</option>
+              <option>Under Repair</option><option>Repaired</option>
+              <option>Unrepairable</option><option>Retired</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row mb-16">
+          <div class="form-group">
+            <label class="form-label" for="reportTechnician">Assigned Technician</label>
+            <input type="text" id="reportTechnician" class="form-control" placeholder="Name of technician" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="reportCost">Repair Cost (₱)</label>
+            <input type="number" id="reportCost" class="form-control" min="0" step="0.01" placeholder="0.00" />
+          </div>
+        </div>
+        <div class="form-row mb-16">
+          <div class="form-group">
+            <label class="form-label" for="reportDateRepaired">Date Repaired</label>
+            <input type="date" id="reportDateRepaired" class="form-control" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="reportResolution">Resolution</label>
+            <input type="text" id="reportResolution" class="form-control" placeholder="How was it resolved?" />
+          </div>
+        </div>
+        <div class="form-group mb-0">
+          <label class="form-label" for="reportNotes">Notes</label>
+          <textarea id="reportNotes" class="form-control" rows="2" placeholder="Optional additional notes…"></textarea>
+        </div>
+      </form>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeReportModal()">Cancel</button>
+      <button class="btn btn-primary" id="saveReportBtn">Submit Report</button>
+    </div>
+  </div>
+</div>
+
+<div id="toastContainer" class="toast-container"></div>
+
+<script type="module">
+  import {
+    getFirestore, collection, getDocs, addDoc, updateDoc, deleteDoc,
+    doc, query, orderBy, serverTimestamp
+  } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js';
+  import { app } from './js/firebase-config.js';
+  import { requireAuth, initSidebar, getCurrentUser, getCurrentUserData, hasPermission, logActivity } from './js/auth.js';
+  import { renderLayout } from './js/layout.js';
+  import { showToast, showConfirm, openModal, closeModal, formatDate, formatDateShort, exportCSV, debounce, getFirestoreError } from './js/utils.js';
+
+  const db = getFirestore(app);
+
+  const { sidebarHTML, headerHTML } = renderLayout('Maintenance', 'maintenance',
+    '<span>Home</span><span class="breadcrumb-sep">›</span><span>Maintenance</span>');
+  document.getElementById('appLayout').insertAdjacentHTML('afterbegin', sidebarHTML);
+  document.getElementById('mainContent').insertAdjacentHTML('afterbegin', headerHTML);
+
+  await requireAuth();
+  initSidebar('maintenance');
+
+  document.getElementById('pageLoading').style.display = 'none';
+  document.getElementById('pageContent').style.display = '';
+
+  if (!hasPermission('maintenance.manage')) {
+    document.getElementById('addReportBtn').style.display = 'none';
+  }
+
+  let allReports = [];
+  let filteredReports = [];
+  let currentPage = 1;
+  const PAGE_SIZE = 20;
+  let activePriority = 'all';
+  let allInventory = [];
+
+  // URL params
+  const urlParams = new URLSearchParams(window.location.search);
+  const preItemId   = urlParams.get('itemId');
+  const preItemName = urlParams.get('itemName');
+
+  async function loadInventory() {
+    const snap = await getDocs(collection(db, 'inventory'));
+    allInventory = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const sel = document.getElementById('reportItem');
+    sel.innerHTML = '<option value="">Select item…</option>';
+    allInventory.forEach(i => sel.add(new Option(`${i.name} (${i.assetCode||'—'})`, i.id)));
+    if (preItemId) sel.value = preItemId;
+  }
+
+  async function loadReports() {
+    try {
+      const q = query(collection(db, 'maintenance'), orderBy('createdAt', 'desc'));
+      const snap = await getDocs(q);
+      allReports = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      let total=0, active=0, repaired=0, unrepairable=0, missing=0;
+      allReports.forEach(r => {
+        total++;
+        if (['Reported','Under Inspection','Under Repair'].includes(r.repairStatus)) active++;
+        if (r.repairStatus === 'Repaired') repaired++;
+        if (r.repairStatus === 'Unrepairable') unrepairable++;
+        if (r.reportType === 'Missing' || r.repairStatus === 'Missing') missing++;
+      });
+      document.getElementById('mTotal').textContent = total;
+      document.getElementById('mActive').textContent = active;
+      document.getElementById('mRepaired').textContent = repaired;
+      document.getElementById('mUnrepairable').textContent = unrepairable;
+      document.getElementById('mMissing').textContent = missing;
+
+      applyFilters();
+    } catch(e) {
+      showToast('Unable to load maintenance reports.', 'error');
+    }
+  }
+
+  window.switchPriority = function(priority, el) {
+    activePriority = priority;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    el.classList.add('active');
+    currentPage = 1;
+    applyFilters();
+  };
+
+  function applyFilters() {
+    const search = document.getElementById('maintSearch').value.toLowerCase();
+    const status = document.getElementById('repairStatusFilter').value;
+    filteredReports = allReports.filter(r => {
+      if (activePriority !== 'all' && r.priority !== activePriority) return false;
+      if (status && r.repairStatus !== status) return false;
+      if (search) {
+        const h = [r.itemName, r.reportedBy, r.problem, r.description, r.assignedTechnician].join(' ').toLowerCase();
+        if (!h.includes(search)) return false;
+      }
+      return true;
+    });
+    renderReports();
+  }
+
+  document.getElementById('maintSearch').addEventListener('input', debounce(applyFilters, 250));
+  document.getElementById('repairStatusFilter').addEventListener('change', applyFilters);
+
+  const PRIORITY_CLS = {
+    Critical: 'badge-danger', High: 'badge-warning',
+    Medium: 'badge-info', Low: 'badge-secondary'
+  };
+  const STATUS_CLS = {
+    Reported: 'badge-warning', 'Under Inspection': 'badge-info',
+    'Under Repair': 'badge-primary', Repaired: 'badge-success',
+    Unrepairable: 'badge-danger', Retired: 'badge-secondary', Missing: 'badge-dark'
+  };
+
+  function renderReports() {
+    document.getElementById('maintCount').textContent = `${filteredReports.length} report${filteredReports.length !== 1 ? 's' : ''}`;
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const page  = filteredReports.slice(start, start + PAGE_SIZE);
+    const tbody = document.getElementById('maintTableBody');
+    const canManage = hasPermission('maintenance.manage');
+
+    if (filteredReports.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state">
+        <h3>No reports found</h3>
+        <p>No maintenance reports match the current filter.</p>
+        ${canManage ? '<button class="btn btn-primary" onclick="openReportModal()">+ New Report</button>' : ''}
+      </div></td></tr>`;
+      document.getElementById('maintPagInfo').textContent = '';
+      document.getElementById('maintPagBtns').innerHTML = '';
+      return;
+    }
+
+    tbody.innerHTML = page.map(r => {
+      const pCls = PRIORITY_CLS[r.priority] || 'badge-secondary';
+      const sCls = STATUS_CLS[r.repairStatus] || 'badge-secondary';
+      const dateStr = r.dateReported?.toDate
+        ? formatDateShort(r.dateReported.toDate())
+        : (r.dateReported ? formatDateShort(new Date(r.dateReported)) : '—');
+      return `<tr>
+        <td data-label="Item">
+          <div style="font-weight:600;">${r.itemName || '—'}</div>
+          <div style="font-size:.8rem;color:var(--text-muted);">${r.itemAssetCode || ''}</div>
+        </td>
+        <td data-label="Problem">
+          <div style="font-weight:500;">${r.problem || '—'}</div>
+          <div style="font-size:.8rem;color:var(--text-muted);">${r.reportType || ''}</div>
+        </td>
+        <td data-label="Reported By">${r.reportedBy || '—'}</td>
+        <td data-label="Date">${dateStr}</td>
+        <td data-label="Priority"><span class="badge ${pCls}">${r.priority || '—'}</span></td>
+        <td data-label="Status"><span class="badge ${sCls}">${r.repairStatus || '—'}</span></td>
+        <td data-label="Actions">
+          <div class="table-actions">
+            ${canManage ? `
+            <button class="btn btn-ghost btn-icon btn-sm" onclick="openEditReport('${r.id}')" title="Edit" aria-label="Edit report">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+            </button>
+            <button class="btn btn-ghost btn-icon btn-sm" style="color:var(--danger)" onclick="deleteReport('${r.id}')" title="Delete" aria-label="Delete report">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            </button>` : '<span class="text-muted text-sm">—</span>'}
+          </div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    const total = filteredReports.length;
+    const totalPages = Math.ceil(total / PAGE_SIZE);
+    document.getElementById('maintPagInfo').textContent = `Showing ${start+1}–${Math.min(start+PAGE_SIZE, total)} of ${total}`;
+    document.getElementById('maintPagBtns').innerHTML = totalPages > 1 ? buildPagBtns(currentPage, totalPages) : '';
+  }
+
+  function buildPagBtns(cur, total) {
+    let h = `<button class="page-btn" onclick="changeMaintPage(${cur-1})" ${cur===1?'disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>`;
+    for (let p = Math.max(1,cur-2); p <= Math.min(total,cur+2); p++) h += `<button class="page-btn ${p===cur?'active':''}" onclick="changeMaintPage(${p})">${p}</button>`;
+    h += `<button class="page-btn" onclick="changeMaintPage(${cur+1})" ${cur===total?'disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>`;
+    return h;
+  }
+  window.changeMaintPage = p => { currentPage = p; renderReports(); };
+
+  // ─── Open modals ──────────────────────────────────────────────────────────
+  window.openReportModal = async function() {
+    if (!hasPermission('maintenance.manage')) {
+      showToast('You do not have permission to create reports.', 'error'); return;
+    }
+    document.getElementById('reportModalTitle').textContent = 'New Maintenance Report';
+    document.getElementById('reportId').value = '';
+    document.getElementById('reportForm').reset();
+    document.getElementById('reportDate').valueAsDate = new Date();
+    document.getElementById('reportRepairStatus').value = 'Reported';
+    document.getElementById('reportPriority').value = 'High';
+    await loadInventory();
+    openModal('reportModal');
+  };
+
+  window.openEditReport = async function(id) {
+    const r = allReports.find(x => x.id === id);
+    if (!r) return;
+    document.getElementById('reportModalTitle').textContent = 'Edit Maintenance Report';
+    await loadInventory();
+    document.getElementById('reportId').value = id;
+    document.getElementById('reportItem').value = r.itemId || '';
+    document.getElementById('reportedBy').value = r.reportedBy || '';
+    document.getElementById('reportDate').value = r.dateReported?.toDate
+      ? r.dateReported.toDate().toISOString().split('T')[0]
+      : (r.dateReported || new Date().toISOString().split('T')[0]);
+    document.getElementById('reportPriority').value = r.priority || 'High';
+    document.getElementById('reportProblem').value = r.problem || '';
+    document.getElementById('reportDesc').value = r.description || '';
+    document.getElementById('reportType').value = r.reportType || 'Damage';
+    document.getElementById('reportRepairStatus').value = r.repairStatus || 'Reported';
+    document.getElementById('reportTechnician').value = r.assignedTechnician || '';
+    document.getElementById('reportCost').value = r.repairCost || '';
+    document.getElementById('reportDateRepaired').value = r.dateRepaired || '';
+    document.getElementById('reportResolution').value = r.resolution || '';
+    document.getElementById('reportNotes').value = r.notes || '';
+    openModal('reportModal');
+  };
+
+  window.closeReportModal = () => closeModal('reportModal');
+
+  document.getElementById('addReportBtn').addEventListener('click', openReportModal);
+
+  // ─── Save Report ──────────────────────────────────────────────────────────
+  document.getElementById('saveReportBtn').addEventListener('click', async () => {
+    const itemId  = document.getElementById('reportItem').value;
+    const reporter= document.getElementById('reportedBy').value.trim();
+    const problem = document.getElementById('reportProblem').value.trim();
+
+    let valid = true;
+    if (!itemId) { document.getElementById('reportItemErr').style.display='block'; valid=false; }
+    else document.getElementById('reportItemErr').style.display='none';
+    if (!reporter) { document.getElementById('reportedByErr').style.display='block'; valid=false; }
+    else document.getElementById('reportedByErr').style.display='none';
+    if (!problem) { document.getElementById('reportProblemErr').style.display='block'; valid=false; }
+    else document.getElementById('reportProblemErr').style.display='none';
+    if (!valid) return;
+
+    const item = allInventory.find(i => i.id === itemId);
+    const repairStatus = document.getElementById('reportRepairStatus').value;
+
+    const btn = document.getElementById('saveReportBtn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+
+    try {
+      const data = {
+        itemId,
+        itemName: item?.name || '',
+        itemAssetCode: item?.assetCode || '',
+        reportedBy: reporter,
+        dateReported: document.getElementById('reportDate').value || new Date().toISOString().split('T')[0],
+        priority: document.getElementById('reportPriority').value,
+        problem,
+        description: document.getElementById('reportDesc').value.trim(),
+        reportType: document.getElementById('reportType').value,
+        repairStatus,
+        assignedTechnician: document.getElementById('reportTechnician').value.trim(),
+        repairCost: parseFloat(document.getElementById('reportCost').value) || null,
+        dateRepaired: document.getElementById('reportDateRepaired').value || null,
+        resolution: document.getElementById('reportResolution').value.trim(),
+        notes: document.getElementById('reportNotes').value.trim(),
+        updatedAt: serverTimestamp()
+      };
+
+      const id = document.getElementById('reportId').value;
+      if (id) {
+        await updateDoc(doc(db, 'maintenance', id), data);
+        showToast('Report updated.', 'success');
+      } else {
+        data.createdAt     = serverTimestamp();
+        data.recordedBy    = getCurrentUserData()?.name || getCurrentUser()?.email || '';
+        data.createdByUid  = getCurrentUser()?.uid || '';   // needed for Firestore ownership rule
+        await addDoc(collection(db, 'maintenance'), data);
+        await logActivity('Reported Damage', `Reported issue with "${item?.name}" — ${problem}`, itemId, item?.name);
+        showToast('Maintenance report submitted.', 'success');
+      }
+
+      // Update item status based on repair status
+      if (itemId) {
+        let itemStatus = null;
+        if (repairStatus === 'Reported' || repairStatus === 'Under Inspection' || repairStatus === 'Under Repair') {
+          itemStatus = 'Under Maintenance';
+        } else if (repairStatus === 'Repaired') {
+          itemStatus = 'Available';
+        } else if (repairStatus === 'Unrepairable' || repairStatus === 'Retired') {
+          itemStatus = repairStatus === 'Retired' ? 'Retired' : 'Damaged';
+        } else if (document.getElementById('reportType').value === 'Missing') {
+          itemStatus = 'Missing';
+        }
+        if (itemStatus) {
+          await updateDoc(doc(db, 'inventory', itemId), { status: itemStatus, updatedAt: serverTimestamp() });
+        }
+      }
+
+      closeModal('reportModal');
+      await loadReports();
+    } catch(e) {
+      showToast(getFirestoreError(e), 'error');
+    } finally {
+      btn.disabled = false; btn.textContent = 'Submit Report';
+    }
+  });
+
+  // ─── Delete ───────────────────────────────────────────────────────────────
+  window.deleteReport = async function(id) {
+    const ok = await showConfirm({ title: 'Delete Report?', message: 'This maintenance report will be permanently deleted.', confirmText: 'Delete', type: 'danger' });
+    if (!ok) return;
+    try {
+      await deleteDoc(doc(db, 'maintenance', id));
+      showToast('Report deleted.', 'success');
+      await loadReports();
+    } catch(e) { showToast(getFirestoreError(e), 'error'); }
+  };
+
+  // ─── Export CSV ───────────────────────────────────────────────────────────
+  document.getElementById('exportMaintBtn').addEventListener('click', () => {
+    if (allReports.length === 0) { showToast('No data to export.','warning'); return; }
+    const headers = ['Item','Asset Code','Problem','Type','Priority','Repair Status','Reported By','Date Reported','Technician','Repair Cost','Date Repaired','Resolution','Notes'];
+    const rows = allReports.map(r => [r.itemName, r.itemAssetCode, r.problem, r.reportType, r.priority, r.repairStatus, r.reportedBy, r.dateReported, r.assignedTechnician, r.repairCost, r.dateRepaired, r.resolution, r.notes]);
+    exportCSV(`maintenance_${new Date().toISOString().split('T')[0]}.csv`, headers, rows);
+    showToast('Exported to CSV.', 'success');
+  });
+
+  // Pre-fill from URL
+  if (urlParams.get('action') === 'report' && hasPermission('maintenance.manage')) {
+    await loadInventory();
+    setTimeout(() => openReportModal(), 400);
+  }
+
+  await loadReports().catch(e => showToast('Unable to load maintenance records. ' + e.message, 'error'));
+</script>
+</body>
+</html>

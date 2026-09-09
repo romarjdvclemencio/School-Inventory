@@ -1,0 +1,315 @@
+/* ===================================================
+   SCHOOL INVENTORY MANAGEMENT SYSTEM
+   Responsive Stylesheet
+   =================================================== */
+
+/* --- Tablet (max 1024px) --- */
+@media (max-width: 1024px) {
+  .form-row-3 {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .stat-cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .quick-actions {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .page-content {
+    padding: 20px;
+  }
+}
+
+/* --- Mobile sidebar breakpoint (max 768px) --- */
+@media (max-width: 768px) {
+  /* Sidebar becomes an off-canvas drawer */
+  .sidebar {
+    transform: translateX(-100%);
+    z-index: 101;
+    box-shadow: var(--shadow-lg);
+  }
+
+  .sidebar.open {
+    transform: translateX(0);
+  }
+
+  .sidebar-overlay {
+    display: block;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity var(--transition-md), visibility var(--transition-md);
+  }
+  .sidebar-overlay.open {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* Main content takes full width */
+  .main-content {
+    margin-left: 0;
+  }
+
+  /* Show hamburger */
+  .header-menu-btn {
+    display: flex;
+  }
+
+  .header {
+    padding: 0 16px;
+  }
+
+  .page-content {
+    padding: 16px;
+  }
+
+  /* Stat cards: 2 per row */
+  .stat-cards {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 16px;
+  }
+
+  .stat-card-value {
+    font-size: 1.625rem;
+  }
+
+  /* Quick actions: 2 per row */
+  .quick-actions {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  /* Form rows become single column */
+  .form-row,
+  .form-row-3 {
+    grid-template-columns: 1fr;
+  }
+
+  /* Page header stacks */
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .page-header-actions {
+    width: 100%;
+  }
+  .page-header-actions .btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  /* Toolbar stacks */
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    padding: 12px 16px;
+  }
+  .search-input-wrap {
+    max-width: 100%;
+    min-width: unset;
+  }
+  .filter-select {
+    width: 100%;
+  }
+  .toolbar-spacer { display: none; }
+
+  /* Table scrollable on mobile */
+  .table-wrapper {
+    overflow-x: auto;
+  }
+
+  /* Detail rows become stacked */
+  .detail-row {
+    flex-direction: column;
+    gap: 4px;
+  }
+  .detail-label {
+    width: auto;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    color: var(--text-muted);
+  }
+
+  /* Modal takes full width */
+  .modal-backdrop {
+    padding: 0;
+    align-items: flex-end;
+  }
+  .modal {
+    max-width: 100%;
+    width: 100%;
+    max-height: 92vh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+
+  /* Dashboard grid: 1 column */
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Toast at top on mobile */
+  .toast-container {
+    bottom: unset;
+    top: 16px;
+    left: 16px;
+    right: 16px;
+    max-width: unset;
+  }
+
+  /* Tabs scroll */
+  .tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+  }
+  .tab { flex-shrink: 0; }
+
+  /* Pagination stacks */
+  .pagination {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  /* Card header */
+  .card-header {
+    flex-wrap: wrap;
+  }
+}
+
+/* --- Small mobile (max 480px) --- */
+@media (max-width: 480px) {
+  .stat-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .stat-card-value {
+    font-size: 1.5rem;
+  }
+
+  .quick-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.25rem; }
+
+  .btn-lg { padding: 10px 18px; font-size: 0.9375rem; }
+
+  .header-title h1 { font-size: 1rem; }
+
+  .table-actions .btn-sm {
+    padding: 5px 8px;
+  }
+  .table-actions .btn-sm span {
+    display: none;
+  }
+}
+
+/* --- Very small (max 360px) --- */
+@media (max-width: 360px) {
+  .stat-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .quick-actions {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .page-content {
+    padding: 12px;
+  }
+}
+
+/* --- Print styles --- */
+@media print {
+  .sidebar,
+  .header,
+  .sidebar-overlay,
+  .toast-container,
+  .toolbar .btn,
+  .page-header-actions,
+  .table-actions,
+  .pagination { display: none !important; }
+
+  .main-content { margin-left: 0; }
+  .page-content { padding: 0; }
+
+  .card {
+    border: 1px solid #ccc;
+    box-shadow: none;
+    break-inside: avoid;
+  }
+
+  thead th {
+    background: #f0f0f0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* --- Dashboard specific grid --- */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+@media (max-width: 1100px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* --- Inventory responsive card view on very small screens --- */
+@media (max-width: 600px) {
+  .responsive-table thead {
+    display: none;
+  }
+
+  .responsive-table tbody tr {
+    display: block;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 10px;
+    padding: 12px;
+    background: var(--surface);
+  }
+
+  .responsive-table tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 5px 0;
+    border-bottom: 1px solid var(--border);
+    font-size: 0.875rem;
+  }
+
+  .responsive-table tbody td:last-child {
+    border-bottom: none;
+  }
+
+  .responsive-table tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+    margin-right: 12px;
+    flex-shrink: 0;
+    padding-top: 2px;
+  }
+
+  .responsive-table .table-actions {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+}

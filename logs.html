@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Activity Logs — School Inventory System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body>
+<div class="app-layout" id="appLayout">
+  <div class="main-content" id="mainContent">
+    <div class="page-content">
+      <div id="pageLoading" class="loading-overlay"><div class="spinner spinner-lg"></div><p>Loading logs…</p></div>
+      <div id="pageContent" style="display:none">
+
+        <div class="page-header">
+          <div>
+            <h2>Activity Logs</h2>
+            <p class="subtitle">Complete audit trail of all system actions</p>
+          </div>
+          <div class="page-header-actions">
+            <button class="btn btn-secondary" id="exportLogsBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export CSV
+            </button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="toolbar">
+            <div class="search-input-wrap">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="search" class="search-input" id="logSearch" placeholder="Search user, action, item…" aria-label="Search activity logs" />
+            </div>
+            <select class="filter-select" id="actionFilter" aria-label="Filter by action">
+              <option value="">All Actions</option>
+              <option>Added Item</option>
+              <option>Updated Item</option>
+              <option>Deleted Item</option>
+              <option>Borrowed Item</option>
+              <option>Returned Item</option>
+              <option>Reported Damage</option>
+              <option>Updated Maintenance</option>
+              <option>Transferred Item</option>
+              <option>Updated User</option>
+            </select>
+            <div class="toolbar-spacer"></div>
+            <span class="text-sm text-muted" id="logCount"></span>
+          </div>
+
+          <div class="table-wrapper">
+            <table aria-label="Activity logs table">
+              <thead>
+                <tr>
+                  <th>User</th>
+                  <th>Action</th>
+                  <th>Item / Subject</th>
+                  <th>Description</th>
+                  <th>Timestamp</th>
+                </tr>
+              </thead>
+              <tbody id="logsTableBody">
+                <tr><td colspan="5"><div class="loading-overlay"><div class="spinner"></div></div></td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="pagination">
+            <span class="pagination-info" id="logPagInfo"></span>
+            <div class="pagination-btns" id="logPagBtns"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toastContainer" class="toast-container"></div>
+
+<script type="module">
+  import {
+    getFirestore, collection, getDocs, query, orderBy, limit
+  } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js';
+  import { app } from './js/firebase-config.js';
+  import { requireAuth, initSidebar, hasPermission, isAdmin } from './js/auth.js';
+  import { renderLayout } from './js/layout.js';
+  import { showToast, formatDateTime, timeAgo, exportCSV, debounce, initials, getFirestoreError } from './js/utils.js';
+
+  const db  = getFirestore(app);
+
+  const { sidebarHTML, headerHTML } = renderLayout('Activity Logs', 'logs',
+    '<span>Home</span><span class="breadcrumb-sep">›</span><span>Logs</span>');
+  document.getElementById('appLayout').insertAdjacentHTML('afterbegin', sidebarHTML);
+  document.getElementById('mainContent').insertAdjacentHTML('afterbegin', headerHTML);
+
+  await requireAuth();
+  initSidebar('logs');
+
+  document.getElementById('pageLoading').style.display = 'none';
+  document.getElementById('pageContent').style.display = '';
+
+  // Frontend guard — matches the Firestore rule (officers and above only)
+  if (!hasPermission('logs.view')) {
+    document.getElementById('pageContent').innerHTML = `
+      <div class="empty-state" style="padding:80px 24px;text-align:center;">
+        <svg class="empty-state-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+        <h3>Access Denied</h3>
+        <p>Only Administrators and Officers can view activity logs.</p>
+        <a href="dashboard.html" class="btn btn-primary" style="margin-top:16px;">Back to Dashboard</a>
+      </div>`;
+  } else {
+
+  let allLogs = [];
+  let filteredLogs = [];
+  let currentPage = 1;
+  const PAGE_SIZE = 50;
+
+  const ACTION_COLORS = {
+    'Added Item':         'badge-success',
+    'Updated Item':       'badge-primary',
+    'Deleted Item':       'badge-danger',
+    'Borrowed Item':      'badge-info',
+    'Returned Item':      'badge-success',
+    'Reported Damage':    'badge-warning',
+    'Updated Maintenance':'badge-secondary',
+    'Transferred Item':   'badge-purple',
+    'Updated User':       'badge-secondary',
+    'Changed Status':     'badge-info',
+  };
+
+  async function loadLogs() {
+    try {
+      const q = query(collection(db, 'activityLogs'), orderBy('timestamp', 'desc'), limit(500));
+      const snap = await getDocs(q);
+      allLogs = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      applyFilters();
+    } catch(e) {
+      showToast('Unable to load activity logs.', 'error');
+      document.getElementById('logsTableBody').innerHTML = `<tr><td colspan="5"><div class="empty-state"><p>Error loading logs.</p></div></td></tr>`;
+    }
+  }
+
+  function applyFilters() {
+    const q      = document.getElementById('logSearch').value.toLowerCase();
+    const action = document.getElementById('actionFilter').value;
+    filteredLogs = allLogs.filter(l => {
+      if (action && l.action !== action) return false;
+      if (q) {
+        const h = [(l.userName||''), (l.action||''), (l.itemName||''), (l.description||'')].join(' ').toLowerCase();
+        if (!h.includes(q)) return false;
+      }
+      return true;
+    });
+    currentPage = 1;
+    renderLogs();
+  }
+
+  document.getElementById('logSearch').addEventListener('input', debounce(applyFilters, 250));
+  document.getElementById('actionFilter').addEventListener('change', applyFilters);
+
+  function renderLogs() {
+    const total = filteredLogs.length;
+    document.getElementById('logCount').textContent = `${total} record${total !== 1 ? 's' : ''}`;
+    const start = (currentPage - 1) * PAGE_SIZE;
+    const page  = filteredLogs.slice(start, start + PAGE_SIZE);
+    const tbody = document.getElementById('logsTableBody');
+
+    if (total === 0) {
+      tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state"><h3>No log entries found</h3><p>No activity has been recorded yet.</p></div></td></tr>`;
+      document.getElementById('logPagInfo').textContent = '';
+      document.getElementById('logPagBtns').innerHTML = '';
+      return;
+    }
+
+    tbody.innerHTML = page.map(l => {
+      const aCls = ACTION_COLORS[l.action] || 'badge-secondary';
+      const ts = l.timestamp?.toDate ? l.timestamp.toDate() : null;
+      const timeStr = ts ? formatDateTime(ts) : '—';
+      const agoStr  = ts ? timeAgo(ts) : '';
+      return `<tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:30px;height:30px;border-radius:50%;background:var(--primary);color:white;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;flex-shrink:0;">${initials(l.userName||'?')}</div>
+            <div>
+              <div style="font-size:.875rem;font-weight:600;">${l.userName || '—'}</div>
+              <div style="font-size:.75rem;color:var(--text-muted);">${l.userRole || ''}</div>
+            </div>
+          </div>
+        </td>
+        <td><span class="badge ${aCls}" style="white-space:nowrap;">${l.action || '—'}</span></td>
+        <td style="font-size:.875rem;">${l.itemName || '—'}</td>
+        <td style="font-size:.875rem;color:var(--text-secondary);max-width:300px;">${l.description || '—'}</td>
+        <td>
+          <div style="font-size:.875rem;">${timeStr}</div>
+          <div style="font-size:.75rem;color:var(--text-muted);">${agoStr}</div>
+        </td>
+      </tr>`;
+    }).join('');
+
+    const totalPages = Math.ceil(total / PAGE_SIZE);
+    document.getElementById('logPagInfo').textContent = `Showing ${start+1}–${Math.min(start+PAGE_SIZE, total)} of ${total}`;
+    document.getElementById('logPagBtns').innerHTML = totalPages > 1 ? buildPagBtns(currentPage, totalPages) : '';
+  }
+
+  function buildPagBtns(cur, total) {
+    let h = `<button class="page-btn" onclick="changeLogPage(${cur-1})" ${cur===1?'disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>`;
+    for (let p = Math.max(1,cur-2); p <= Math.min(total,cur+2); p++) h += `<button class="page-btn ${p===cur?'active':''}" onclick="changeLogPage(${p})">${p}</button>`;
+    h += `<button class="page-btn" onclick="changeLogPage(${cur+1})" ${cur===total?'disabled':''}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>`;
+    return h;
+  }
+  window.changeLogPage = p => { currentPage = p; renderLogs(); window.scrollTo({top:0,behavior:'smooth'}); };
+
+  document.getElementById('exportLogsBtn').addEventListener('click', () => {
+    if (filteredLogs.length === 0) { showToast('No logs to export.','warning'); return; }
+    const headers = ['User','Role','Action','Item','Description','Timestamp'];
+    const rows = filteredLogs.map(l => [
+      l.userName, l.userRole, l.action, l.itemName, l.description,
+      l.timestamp?.toDate ? l.timestamp.toDate().toISOString() : ''
+    ]);
+    exportCSV(`activity_logs_${new Date().toISOString().split('T')[0]}.csv`, headers, rows);
+    showToast('Logs exported.', 'success');
+  });
+
+  await loadLogs().catch(e => showToast(getFirestoreError(e), 'error'));
+
+  } // end hasPermission('logs.view') check
+</script>
+</body>
+</html>

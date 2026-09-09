@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Settings — School Inventory System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body>
+<div class="app-layout" id="appLayout">
+  <div class="main-content" id="mainContent">
+    <div class="page-content">
+      <div id="pageLoading" class="loading-overlay"><div class="spinner spinner-lg"></div><p>Loading settings…</p></div>
+      <div id="pageContent" style="display:none">
+
+        <div class="page-header">
+          <div>
+            <h2>Settings</h2>
+            <p class="subtitle">Configure system preferences and school information</p>
+          </div>
+        </div>
+
+        <div style="max-width:720px;">
+          <!-- School Information -->
+          <div class="card mb-20">
+            <div class="card-header">
+              <h3 class="card-title">School Information</h3>
+            </div>
+            <div class="card-body">
+              <div class="form-group mb-16">
+                <label class="form-label" for="schoolName">School Name</label>
+                <input type="text" id="schoolName" class="form-control" placeholder="e.g. Rizal National High School" />
+              </div>
+              <div class="form-row mb-16">
+                <div class="form-group">
+                  <label class="form-label" for="schoolAddress">Address</label>
+                  <input type="text" id="schoolAddress" class="form-control" placeholder="School address" />
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="schoolPhone">Contact Number</label>
+                  <input type="text" id="schoolPhone" class="form-control" placeholder="e.g. (02) 123-4567" />
+                </div>
+              </div>
+              <div class="form-group mb-0">
+                <label class="form-label" for="schoolEmail">School Email</label>
+                <input type="email" id="schoolEmail" class="form-control" placeholder="info@school.edu.ph" />
+              </div>
+            </div>
+          </div>
+
+          <!-- System Preferences -->
+          <div class="card mb-20">
+            <div class="card-header">
+              <h3 class="card-title">System Preferences</h3>
+            </div>
+            <div class="card-body">
+              <div class="form-row mb-16">
+                <div class="form-group">
+                  <label class="form-label" for="defaultCurrency">Default Currency</label>
+                  <select id="defaultCurrency" class="form-control">
+                    <option value="PHP">PHP (₱) — Philippine Peso</option>
+                    <option value="USD">USD ($) — US Dollar</option>
+                    <option value="EUR">EUR (€) — Euro</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="lowStockThreshold">Default Low Stock Threshold</label>
+                  <input type="number" id="lowStockThreshold" class="form-control" min="1" placeholder="5" />
+                  <span class="form-hint">Items below this quantity are flagged as low stock.</span>
+                </div>
+              </div>
+              <div class="form-row mb-0">
+                <div class="form-group">
+                  <label class="form-label" for="itemsPerPage">Items Per Page</label>
+                  <select id="itemsPerPage" class="form-control">
+                    <option value="10">10</option>
+                    <option value="20" selected>20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label class="form-label" for="academicYear">Academic Year</label>
+                  <input type="text" id="academicYear" class="form-control" placeholder="e.g. 2025–2026" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Demo Data -->
+          <div class="card mb-20">
+            <div class="card-header">
+              <h3 class="card-title">Demo Data</h3>
+            </div>
+            <div class="card-body">
+              <p style="font-size:.875rem;color:var(--text-secondary);margin-bottom:16px;">Seed the system with realistic demo inventory, categories, and locations for testing purposes. This will not overwrite existing data.</p>
+              <div style="display:flex;gap:12px;flex-wrap:wrap;">
+                <button class="btn btn-secondary" id="seedDemoBtn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20z"/><path d="M12 8v4l3 3"/></svg>
+                  Seed Demo Data
+                </button>
+                <button class="btn btn-danger" id="clearDemoBtn">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                  Clear Demo Items                </button>
+              </div>
+              <div id="demoProgress" style="display:none;margin-top:16px;">
+                <div style="display:flex;align-items:center;gap:12px;">
+                  <div class="spinner spinner-sm"></div>
+                  <span id="demoProgressText" style="font-size:.875rem;color:var(--text-muted);">Processing…</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Save Button -->
+          <div style="display:flex;justify-content:flex-end;">
+            <button class="btn btn-primary btn-lg" id="saveSettingsBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+              Save Settings
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toastContainer" class="toast-container"></div>
+
+<script type="module">
+  import {
+    getFirestore, doc, getDoc, setDoc, collection, addDoc,
+    getDocs, deleteDoc, query, serverTimestamp
+  } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js';
+  import { app } from './js/firebase-config.js';
+  import { requireAuth, initSidebar, isAdmin, logActivity, getCurrentUser, getCurrentUserData } from './js/auth.js';
+  import { renderLayout } from './js/layout.js';
+  import { showToast, showConfirm, getFirestoreError } from './js/utils.js';
+
+  const db  = getFirestore(app);
+
+  const { sidebarHTML, headerHTML } = renderLayout('Settings', 'settings',
+    '<span>Home</span><span class="breadcrumb-sep">›</span><span>Settings</span>');
+  document.getElementById('appLayout').insertAdjacentHTML('afterbegin', sidebarHTML);
+  document.getElementById('mainContent').insertAdjacentHTML('afterbegin', headerHTML);
+
+  await requireAuth();
+  initSidebar('settings');
+
+  document.getElementById('pageLoading').style.display = 'none';
+  document.getElementById('pageContent').style.display = '';
+
+  if (!isAdmin()) {
+    ['seedDemoBtn','clearDemoBtn','saveSettingsBtn'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.disabled = true;
+    });
+  }
+
+  // Load settings
+  async function loadSettings() {
+    try {
+      const snap = await getDoc(doc(db, 'settings', 'general'));
+      if (snap.exists()) {
+        const s = snap.data();
+        document.getElementById('schoolName').value = s.schoolName || '';
+        document.getElementById('schoolAddress').value = s.schoolAddress || '';
+        document.getElementById('schoolPhone').value = s.schoolPhone || '';
+        document.getElementById('schoolEmail').value = s.schoolEmail || '';
+        document.getElementById('defaultCurrency').value = s.defaultCurrency || 'PHP';
+        document.getElementById('lowStockThreshold').value = s.lowStockThreshold || 5;
+        document.getElementById('itemsPerPage').value = s.itemsPerPage || 20;
+        document.getElementById('academicYear').value = s.academicYear || '';
+      }
+    } catch(e) { console.warn('Settings load failed:', e.message); }
+  }
+  await loadSettings().catch(e => console.warn('loadSettings:', e.message));
+
+  // Save settings
+  document.getElementById('saveSettingsBtn').addEventListener('click', async () => {
+    const btn = document.getElementById('saveSettingsBtn');
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      const data = {
+        schoolName:        document.getElementById('schoolName').value.trim(),
+        schoolAddress:     document.getElementById('schoolAddress').value.trim(),
+        schoolPhone:       document.getElementById('schoolPhone').value.trim(),
+        schoolEmail:       document.getElementById('schoolEmail').value.trim(),
+        defaultCurrency:   document.getElementById('defaultCurrency').value,
+        lowStockThreshold: parseInt(document.getElementById('lowStockThreshold').value) || 5,
+        itemsPerPage:      parseInt(document.getElementById('itemsPerPage').value) || 20,
+        academicYear:      document.getElementById('academicYear').value.trim(),
+        updatedAt:         serverTimestamp()
+      };
+      await setDoc(doc(db, 'settings', 'general'), data, { merge: true });
+      await logActivity('Settings Changed', `Settings updated by ${getCurrentUserData()?.name || getCurrentUser()?.email || 'admin'}`, 'general', 'Settings');
+      // Update sidebar school name
+      const sidebarName = document.getElementById('schoolNameSidebar');
+      if (sidebarName && data.schoolName) sidebarName.textContent = data.schoolName;
+      document.title = `Settings — ${data.schoolName || 'School Inventory System'}`;
+      showToast('Settings saved successfully.', 'success');
+    } catch(e) {
+      showToast(getFirestoreError(e), 'error');
+    } finally {
+      btn.disabled = false;
+      btn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Save Settings';
+    }
+  });
+
+  // ─── Demo Data ────────────────────────────────────────────────────────────
+  const DEMO_ITEMS = [
+    { assetCode:'ICT-PC-001', name:'Dell OptiPlex 3080', category:'Computers & ICT', brand:'Dell', model:'OptiPlex 3080', serialNumber:'SN001XYZ', quantity:5, unit:'Unit', condition:'Good', status:'Available', location:'Computer Laboratory', department:'ICT', purchasePrice:35000, currentValue:28000, dateAcquired:'2023-06-01' },
+    { assetCode:'ICT-PC-002', name:'HP ProDesk 400 G7', category:'Computers & ICT', brand:'HP', model:'ProDesk 400 G7', serialNumber:'SN002XYZ', quantity:3, unit:'Unit', condition:'Excellent', status:'Available', location:'Computer Laboratory', department:'ICT', purchasePrice:32000, currentValue:30000, dateAcquired:'2024-01-15' },
+    { assetCode:'ICT-PRN-001', name:'HP LaserJet Pro M404n', category:'Computers & ICT', brand:'HP', model:'LaserJet M404n', serialNumber:'SN003XYZ', quantity:2, unit:'Unit', condition:'Good', status:'Available', location:'Faculty Room', department:'Admin', purchasePrice:15000, currentValue:12000, dateAcquired:'2023-03-10' },
+    { assetCode:'ICT-PROJ-001', name:'Epson EB-W52 Projector', category:'Computers & ICT', brand:'Epson', model:'EB-W52', serialNumber:'SN004XYZ', quantity:4, unit:'Unit', condition:'Good', status:'Available', location:'Library', department:'ICT', purchasePrice:25000, currentValue:20000, dateAcquired:'2023-08-20' },
+    { assetCode:'FRN-CHR-001', name:'Monoblock Chair', category:'Classroom Furniture', brand:'Generic', model:'Standard', quantity:150, unit:'Piece', condition:'Good', status:'Available', location:'Classroom 101', department:'Admin', purchasePrice:350, currentValue:300, dateAcquired:'2022-06-01' },
+    { assetCode:'FRN-TBL-001', name:'Teacher\'s Table', category:'Classroom Furniture', brand:'Local', model:'Standard', quantity:10, unit:'Piece', condition:'Fair', status:'Available', location:'Faculty Room', department:'Admin', purchasePrice:3500, currentValue:2500, dateAcquired:'2021-06-15' },
+    { assetCode:'FRN-WB-001', name:'Whiteboard (4x8 ft)', category:'Classroom Furniture', brand:'Generic', model:'4x8', quantity:15, unit:'Piece', condition:'Good', status:'Available', location:'Classroom 101', department:'Admin', purchasePrice:2500, currentValue:2000, dateAcquired:'2022-01-10' },
+    { assetCode:'SCI-MIC-001', name:'Compound Microscope', category:'Laboratory Equipment', brand:'AmScope', model:'B120C', serialNumber:'SN010MIC', quantity:10, unit:'Unit', condition:'Good', status:'Available', location:'Science Laboratory', department:'Science', purchasePrice:8500, currentValue:7000, dateAcquired:'2023-06-01' },
+    { assetCode:'SPT-BKT-001', name:'Basketball', category:'Sports Equipment', brand:'Spalding', model:'NBA', quantity:8, unit:'Piece', condition:'Good', status:'Available', location:'Gymnasium', department:'PE', purchasePrice:1200, currentValue:900, dateAcquired:'2023-07-01' },
+    { assetCode:'SUP-BP-001', name:'Bond Paper (Short)', category:'School Supplies', brand:'Riso', model:'80gsm', quantity:3, unit:'Ream', condition:'Good', status:'Available', location:"Registrar's Office", department:'Admin', purchasePrice:250, currentValue:250, minStock:10, dateAcquired:'2025-01-01' },
+    { assetCode:'ICT-RTR-001', name:'TP-Link Network Router', category:'Computers & ICT', brand:'TP-Link', model:'TL-WR840N', serialNumber:'SN020RTR', quantity:2, unit:'Unit', condition:'Good', status:'Available', location:'Computer Laboratory', department:'ICT', purchasePrice:1800, currentValue:1500, dateAcquired:'2023-09-01' },
+    { assetCode:'ICT-KB-001', name:'Standard Keyboard', category:'Computers & ICT', brand:'Generic', model:'USB KB', quantity:20, unit:'Piece', condition:'Good', status:'Available', location:'Computer Laboratory', department:'ICT', purchasePrice:350, currentValue:250, dateAcquired:'2023-06-01' },
+    { assetCode:'ICT-MS-001', name:'Optical Mouse', category:'Computers & ICT', brand:'Logitech', model:'M100', quantity:20, unit:'Piece', condition:'Fair', status:'Available', location:'Computer Laboratory', department:'ICT', purchasePrice:320, currentValue:200, dateAcquired:'2023-06-01' },
+    { assetCode:'FRN-CHR-002', name:'Office Chair (Faculty)', category:'Classroom Furniture', brand:'Local', model:'Ergonomic', quantity:12, unit:'Piece', condition:'Fair', status:'Available', location:'Faculty Room', department:'Admin', purchasePrice:2800, currentValue:1800, dateAcquired:'2022-03-01' },
+    { assetCode:'MED-FAK-001', name:'First Aid Kit', category:'Other', brand:'Generic', model:'Standard', quantity:3, unit:'Set', condition:'Good', status:'Available', location:'Clinic', department:'Clinic', purchasePrice:500, currentValue:500, dateAcquired:'2024-06-01' },
+  ];
+
+  document.getElementById('seedDemoBtn').addEventListener('click', async () => {
+    if (!isAdmin()) { showToast('Admin access required.','error'); return; }
+    const ok = await showConfirm({
+      title: 'Seed Demo Data?',
+      message: 'This will add 15 sample inventory items to the database. Existing items will not be affected.',
+      confirmText: 'Seed Data', type: 'warning'
+    });
+    if (!ok) return;
+
+    const prog = document.getElementById('demoProgress');
+    const progText = document.getElementById('demoProgressText');
+    prog.style.display = 'block';
+    document.getElementById('seedDemoBtn').disabled = true;
+
+    let count = 0;
+    try {
+      for (const item of DEMO_ITEMS) {
+        progText.textContent = `Adding "${item.name}"…`;
+        await addDoc(collection(db, 'inventory'), {
+          ...item,
+          notes: 'DEMO DATA — can be deleted',
+          createdBy: 'Demo Seed',
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+        count++;
+      }
+      await logActivity('Added Item', `Seeded ${count} demo inventory items`);
+      showToast(`${count} demo items added successfully.`, 'success');
+    } catch(e) {
+      showToast('Error seeding demo data: ' + e.message, 'error');
+    } finally {
+      prog.style.display = 'none';
+      document.getElementById('seedDemoBtn').disabled = false;
+    }
+  });
+
+  document.getElementById('clearDemoBtn').addEventListener('click', async () => {
+    if (!isAdmin()) { showToast('Admin access required.','error'); return; }
+    const ok = await showConfirm({
+      title: 'Clear Demo Items?',
+      message: 'This will delete only items tagged as demo data ("DEMO DATA — can be deleted" in notes). Your real inventory will NOT be affected.',
+      confirmText: 'Clear Demo Items', type: 'warning'
+    });
+    if (!ok) return;
+
+    const prog = document.getElementById('demoProgress');
+    const progText = document.getElementById('demoProgressText');
+    prog.style.display = 'block';
+    progText.textContent = 'Finding demo items…';
+    document.getElementById('clearDemoBtn').disabled = true;
+
+    try {
+      const snap = await getDocs(collection(db, 'inventory'));
+      const demoItems = snap.docs.filter(d => d.data().notes === 'DEMO DATA — can be deleted');
+      let count = 0;
+      for (const d of demoItems) {
+        await deleteDoc(d.ref);
+        count++;
+        progText.textContent = `Deleted ${count}/${demoItems.length} demo items…`;
+      }
+      await logActivity('Deleted Item', `Cleared ${count} demo inventory items`);
+      showToast(count > 0 ? `${count} demo items deleted.` : 'No demo items found to delete.', 'success');
+    } catch(e) {
+      showToast('Error clearing inventory: ' + e.message, 'error');
+    } finally {
+      prog.style.display = 'none';
+      document.getElementById('clearDemoBtn').disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

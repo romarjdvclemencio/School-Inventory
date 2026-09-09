@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reports — School Inventory System</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/responsive.css" />
+</head>
+<body>
+<div class="app-layout" id="appLayout">
+  <div class="main-content" id="mainContent">
+    <div class="page-content">
+      <div id="pageLoading" class="loading-overlay"><div class="spinner spinner-lg"></div><p>Loading reports…</p></div>
+      <div id="pageContent" style="display:none">
+
+        <div class="page-header">
+          <div>
+            <h2>Reports</h2>
+            <p class="subtitle">Generate and export inventory reports</p>
+          </div>
+          <div class="page-header-actions">
+            <button class="btn btn-secondary" id="printReportBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+              Print
+            </button>
+            <button class="btn btn-primary" id="exportReportBtn">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Export CSV
+            </button>
+          </div>
+        </div>
+
+        <!-- Report type selector -->
+        <div class="card mb-20">
+          <div class="card-body">
+            <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap;">
+              <div class="form-group mb-0" style="flex:1;min-width:200px;">
+                <label class="form-label" for="reportType">Report Type</label>
+                <select id="reportType" class="form-control">
+                  <option value="complete">Complete Inventory Report</option>
+                  <option value="by-category">Inventory by Category</option>
+                  <option value="by-location">Inventory by Location</option>
+                  <option value="damaged">Damaged Items</option>
+                  <option value="missing">Missing Items</option>
+                  <option value="borrowed">Borrowed Items</option>
+                  <option value="overdue">Overdue Returns</option>
+                  <option value="low-stock">Low Stock Items</option>
+                  <option value="valuation">Inventory Valuation</option>
+                </select>
+              </div>
+              <div class="form-group mb-0" style="min-width:160px;">
+                <label class="form-label" for="reportCategory">Filter Category</label>
+                <select id="reportCategory" class="form-control">
+                  <option value="">All Categories</option>
+                </select>
+              </div>
+              <div class="form-group mb-0" style="min-width:160px;">
+                <label class="form-label" for="reportLocation">Filter Location</label>
+                <select id="reportLocation" class="form-control">
+                  <option value="">All Locations</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Valuation summary (shown for valuation report) -->
+        <div id="valuationSummary" style="display:none;" class="stat-cards mb-20" style="grid-template-columns:repeat(auto-fill,minmax(200px,1fr))">
+          <div class="stat-card">
+            <div class="stat-card-icon blue"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+            <div><div class="stat-card-value" id="totalPurchaseVal" style="font-size:1.25rem;">—</div><div class="stat-card-label">Total Purchase Value</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon green"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+            <div><div class="stat-card-value" id="totalCurrentVal" style="font-size:1.25rem;">—</div><div class="stat-card-label">Total Current Value</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon yellow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg></div>
+            <div><div class="stat-card-value" id="depreciation" style="font-size:1.25rem;">—</div><div class="stat-card-label">Total Depreciation</div></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-icon purple"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg></div>
+            <div><div class="stat-card-value" id="totalItems">—</div><div class="stat-card-label">Items with Pricing</div></div>
+          </div>
+        </div>
+
+        <!-- Report table -->
+        <div class="card" id="reportCard">
+          <div class="card-header">
+            <h3 class="card-title" id="reportTitle">Complete Inventory Report</h3>
+            <span class="text-sm text-muted" id="reportCount"></span>
+          </div>
+          <div id="reportLoading" class="loading-overlay" style="padding:40px">
+            <div class="spinner"></div><p>Generating report…</p>
+          </div>
+          <div id="reportTableWrap" style="display:none">
+            <div class="table-wrapper" id="reportPrintArea">
+              <table id="reportTable" aria-label="Report table">
+                <thead id="reportThead"></thead>
+                <tbody id="reportTbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="toastContainer" class="toast-container"></div>
+
+<script type="module">
+  import {
+    getFirestore, collection, getDocs, query, orderBy, where
+  } from 'https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js';
+  import { app } from './js/firebase-config.js';
+  import { requireAuth, initSidebar, hasPermission } from './js/auth.js';
+  import { renderLayout } from './js/layout.js';
+  import { showToast, formatDate, formatDateShort, formatCurrency, statusBadge, conditionBadge, exportCSV, getFirestoreError } from './js/utils.js';
+
+  const db  = getFirestore(app);
+
+  const { sidebarHTML, headerHTML } = renderLayout('Reports', 'reports',
+    '<span>Home</span><span class="breadcrumb-sep">›</span><span>Reports</span>');
+  document.getElementById('appLayout').insertAdjacentHTML('afterbegin', sidebarHTML);
+  document.getElementById('mainContent').insertAdjacentHTML('afterbegin', headerHTML);
+
+  await requireAuth();
+  initSidebar('reports');
+  document.getElementById('pageLoading').style.display = 'none';
+  document.getElementById('pageContent').style.display = '';
+
+  // Load filter options
+  const [catSnap, locSnap] = await Promise.all([
+    getDocs(query(collection(db, 'categories'), orderBy('name'))),
+    getDocs(query(collection(db, 'locations'),  orderBy('name')))
+  ]);
+  catSnap.forEach(d => document.getElementById('reportCategory').add(new Option(d.data().name, d.data().name)));
+  locSnap.forEach(d => document.getElementById('reportLocation').add(new Option(d.data().name, d.data().name)));
+
+  let currentData = [];
+  let currentHeaders = [];
+
+  window.loadReport = async function() {
+    const type = document.getElementById('reportType').value;
+    const catFilter = document.getElementById('reportCategory').value;
+    const locFilter = document.getElementById('reportLocation').value;
+
+    document.getElementById('reportLoading').style.display = '';
+    document.getElementById('reportTableWrap').style.display = 'none';
+    document.getElementById('valuationSummary').style.display = 'none';
+
+    const TITLES = {
+      'complete':     'Complete Inventory Report',
+      'by-category':  'Inventory by Category',
+      'by-location':  'Inventory by Location',
+      'damaged':      'Damaged Items',
+      'missing':      'Missing Items',
+      'borrowed':     'Currently Borrowed Items',
+      'overdue':      'Overdue Returns',
+      'low-stock':    'Low Stock Items',
+      'valuation':    'Inventory Valuation Report'
+    };
+    document.getElementById('reportTitle').textContent = TITLES[type] || 'Report';
+
+    try {
+      let items = [];
+      const invSnap = await getDocs(query(collection(db, 'inventory'), orderBy('name')));
+      const allInv = invSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      if (type === 'complete' || type === 'by-category' || type === 'by-location' || type === 'valuation') {
+        items = allInv.filter(i => {
+          if (catFilter && i.category !== catFilter) return false;
+          if (locFilter && i.location !== locFilter) return false;
+          return true;
+        });
+      } else if (type === 'damaged') {
+        items = allInv.filter(i => i.status === 'Damaged' || i.condition === 'Damaged' || i.condition === 'Critical');
+      } else if (type === 'missing') {
+        items = allInv.filter(i => i.status === 'Missing');
+      } else if (type === 'low-stock') {
+        items = allInv.filter(i => i.minStock && i.quantity <= i.minStock);
+      }
+
+      let rows = [];
+      let headers = [];
+
+      if (type === 'borrowed' || type === 'overdue') {
+        const borrowSnap = await getDocs(query(collection(db, 'borrowings'), orderBy('createdAt', 'desc')));
+        const now = new Date();
+        let borrows = borrowSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+        if (type === 'borrowed') {
+          borrows = borrows.filter(b => b.status === 'Borrowed' || b.status === 'Approved');
+        } else {
+          borrows = borrows.filter(b => {
+            if (b.status !== 'Borrowed') return false;
+            const ret = b.expectedReturnDate?.toDate ? b.expectedReturnDate.toDate() : new Date(b.expectedReturnDate);
+            return ret < now;
+          });
+        }
+
+        headers = ['Borrower','Department','Item','Asset Code','Qty','Date Borrowed','Expected Return','Status','Purpose'];
+        currentHeaders = headers;
+        rows = borrows.map(b => ({
+          borrowerName: b.borrowerName, borrowerDept: b.borrowerDept,
+          itemName: b.itemName, itemAssetCode: b.itemAssetCode,
+          quantity: b.quantity, dateBorrowed: b.dateBorrowed,
+          expectedReturnDate: b.expectedReturnDate, status: b.status, purpose: b.purpose
+        }));
+        currentData = rows;
+
+        document.getElementById('reportCount').textContent = `${rows.length} record${rows.length !== 1 ? 's' : ''}`;
+        document.getElementById('reportThead').innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
+        document.getElementById('reportTbody').innerHTML = rows.length === 0
+          ? `<tr><td colspan="${headers.length}"><div class="empty-state" style="padding:32px"><h3>No records found</h3></div></td></tr>`
+          : rows.map(r => `<tr>
+            <td>${r.borrowerName||'—'}</td><td>${r.borrowerDept||'—'}</td>
+            <td>${r.itemName||'—'}</td><td>${r.itemAssetCode||'—'}</td>
+            <td>${r.quantity||1}</td>
+            <td>${r.dateBorrowed?.toDate ? formatDateShort(r.dateBorrowed.toDate()) : (r.dateBorrowed || '—')}</td>
+            <td>${r.expectedReturnDate?.toDate ? formatDateShort(r.expectedReturnDate.toDate()) : (r.expectedReturnDate || '—')}</td>
+            <td><span class="badge ${r.status==='Borrowed'?'badge-info':'badge-primary'}">${r.status||'—'}</span></td>
+            <td>${r.purpose||'—'}</td>
+          </tr>`).join('');
+
+      } else if (type === 'by-category') {
+        // Group by category
+        const groups = {};
+        items.forEach(i => { const k = i.category||'Uncategorized'; if (!groups[k]) groups[k]=[];  groups[k].push(i); });
+        headers = ['Category','Item','Asset Code','Qty','Location','Condition','Status'];
+        currentHeaders = headers;
+        currentData = items;
+        document.getElementById('reportCount').textContent = `${items.length} items across ${Object.keys(groups).length} categories`;
+        document.getElementById('reportThead').innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
+        let tbodyHTML = '';
+        Object.entries(groups).sort().forEach(([cat, catItems]) => {
+          tbodyHTML += `<tr style="background:var(--surface-2);"><td colspan="${headers.length}"><strong>${cat}</strong> (${catItems.length} items)</td></tr>`;
+          catItems.forEach(i => {
+            tbodyHTML += `<tr><td></td><td>${i.name}</td><td>${i.assetCode||'—'}</td><td>${i.quantity??'—'} ${i.unit||''}</td><td>${i.location||'—'}</td><td>${conditionBadge(i.condition)}</td><td>${statusBadge(i.status)}</td></tr>`;
+          });
+        });
+        document.getElementById('reportTbody').innerHTML = tbodyHTML || `<tr><td colspan="${headers.length}"><div class="empty-state" style="padding:32px"><h3>No items found</h3></div></td></tr>`;
+
+      } else if (type === 'by-location') {
+        const groups = {};
+        items.forEach(i => { const k = i.location||'No Location'; if (!groups[k]) groups[k]=[]; groups[k].push(i); });
+        headers = ['Location','Item','Asset Code','Qty','Category','Condition','Status'];
+        currentHeaders = headers;
+        currentData = items;
+        document.getElementById('reportCount').textContent = `${items.length} items across ${Object.keys(groups).length} locations`;
+        document.getElementById('reportThead').innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
+        let tbodyHTML = '';
+        Object.entries(groups).sort().forEach(([loc, locItems]) => {
+          tbodyHTML += `<tr style="background:var(--surface-2);"><td colspan="${headers.length}"><strong>${loc}</strong> (${locItems.length} items)</td></tr>`;
+          locItems.forEach(i => {
+            tbodyHTML += `<tr><td></td><td>${i.name}</td><td>${i.assetCode||'—'}</td><td>${i.quantity??'—'} ${i.unit||''}</td><td>${i.category||'—'}</td><td>${conditionBadge(i.condition)}</td><td>${statusBadge(i.status)}</td></tr>`;
+          });
+        });
+        document.getElementById('reportTbody').innerHTML = tbodyHTML || `<tr><td colspan="${headers.length}"><div class="empty-state" style="padding:32px"><h3>No items found</h3></div></td></tr>`;
+
+      } else if (type === 'valuation') {
+        let totalPurchase = 0, totalCurrent = 0, withPrice = 0;
+        items.forEach(i => {
+          if (i.purchasePrice) { totalPurchase += i.purchasePrice; withPrice++; }
+          if (i.currentValue) totalCurrent += i.currentValue;
+        });
+        document.getElementById('totalPurchaseVal').textContent = formatCurrency(totalPurchase);
+        document.getElementById('totalCurrentVal').textContent = formatCurrency(totalCurrent);
+        document.getElementById('depreciation').textContent = formatCurrency(totalPurchase - totalCurrent);
+        document.getElementById('totalItems').textContent = withPrice;
+        document.getElementById('valuationSummary').style.display = '';
+
+        headers = ['Asset Code','Item','Category','Location','Qty','Purchase Price','Current Value','Depreciation','Date Acquired','Supplier'];
+        currentHeaders = headers;
+        currentData = items;
+        document.getElementById('reportCount').textContent = `${items.length} items`;
+        document.getElementById('reportThead').innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
+        document.getElementById('reportTbody').innerHTML = items.length === 0
+          ? `<tr><td colspan="${headers.length}"><div class="empty-state" style="padding:32px"><h3>No items found</h3></div></td></tr>`
+          : items.map(i => {
+            const dep = (i.purchasePrice || 0) - (i.currentValue || 0);
+            return `<tr>
+              <td>${i.assetCode||'—'}</td><td style="font-weight:600;">${i.name}</td>
+              <td>${i.category||'—'}</td><td>${i.location||'—'}</td>
+              <td>${i.quantity??'—'} ${i.unit||''}</td>
+              <td>${i.purchasePrice ? formatCurrency(i.purchasePrice) : '—'}</td>
+              <td>${i.currentValue ? formatCurrency(i.currentValue) : '—'}</td>
+              <td>${i.purchasePrice && i.currentValue ? formatCurrency(dep) : '—'}</td>
+              <td>${i.dateAcquired || '—'}</td><td>${i.supplier||'—'}</td>
+            </tr>`;
+          }).join('');
+
+      } else if (type === 'low-stock') {
+        headers = ['Asset Code','Item','Category','Location','Current Qty','Min Stock','Unit','Status'];
+        currentHeaders = headers;
+        currentData = items;
+        document.getElementById('reportCount').textContent = `${items.length} low-stock item${items.length !== 1 ? 's' : ''}`;
+        document.getElementById('reportThead').innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
+        document.getElementById('reportTbody').innerHTML = items.length === 0
+          ? `<tr><td colspan="${headers.length}"><div class="empty-state" style="padding:32px"><h3>No low-stock items</h3><p>All supplies are sufficient.</p></div></td></tr>`
+          : items.map(i => {
+            const pct = (i.quantity / i.minStock) * 100;
+            const badgeCls = i.quantity === 0 ? 'badge-danger' : 'badge-warning';
+            return `<tr>
+              <td>${i.assetCode||'—'}</td><td style="font-weight:600;">${i.name}</td>
+              <td>${i.category||'—'}</td><td>${i.location||'—'}</td>
+              <td><strong style="color:${i.quantity===0?'var(--danger)':'var(--warning)'}">${i.quantity}</strong></td>
+              <td>${i.minStock}</td><td>${i.unit||'Unit'}</td>
+              <td><span class="badge ${badgeCls}">${i.quantity===0?'OUT OF STOCK':'LOW STOCK'}</span></td>
+            </tr>`;
+          }).join('');
+
+      } else {
+        // Complete / damaged / missing
+        headers = ['Asset Code','Item Name','Category','Qty','Unit','Location','Department','Condition','Status','Brand','Model','Serial No.','Date Acquired'];
+        if (type === 'valuation') headers.push('Purchase Price', 'Current Value');
+        currentHeaders = headers;
+        currentData = items;
+        document.getElementById('reportCount').textContent = `${items.length} item${items.length !== 1 ? 's' : ''}`;
+        document.getElementById('reportThead').innerHTML = `<tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>`;
+        document.getElementById('reportTbody').innerHTML = items.length === 0
+          ? `<tr><td colspan="${headers.length}"><div class="empty-state" style="padding:32px"><h3>No items found</h3></div></td></tr>`
+          : items.map(i => `<tr>
+            <td><code style="font-size:.8rem;background:var(--bg);padding:2px 6px;border-radius:4px;">${i.assetCode||'—'}</code></td>
+            <td style="font-weight:600;">${i.name}</td>
+            <td>${i.category||'—'}</td>
+            <td>${i.quantity??'—'}</td>
+            <td>${i.unit||'—'}</td>
+            <td>${i.location||'—'}</td>
+            <td>${i.department||'—'}</td>
+            <td>${conditionBadge(i.condition)}</td>
+            <td>${statusBadge(i.status)}</td>
+            <td>${i.brand||'—'}</td>
+            <td>${i.model||'—'}</td>
+            <td>${i.serialNumber||'—'}</td>
+            <td>${i.dateAcquired||'—'}</td>
+          </tr>`).join('');
+      }
+
+      document.getElementById('reportLoading').style.display = 'none';
+      document.getElementById('reportTableWrap').style.display = '';
+    } catch(e) {
+      document.getElementById('reportLoading').style.display = 'none';
+      showToast(getFirestoreError(e), 'error');
+    }
+  };
+
+  // Wire report filter selects via addEventListener (not inline onchange)
+  ['reportType','reportCategory','reportLocation'].forEach(id => {
+    document.getElementById(id).addEventListener('change', () => window.loadReport());
+  });
+  document.getElementById('printReportBtn').addEventListener('click', () => window.printCurrentReport());
+
+  // Helper for safe date formatting in exports
+  const fmtExportDate = v => v?.toDate ? v.toDate().toISOString().split('T')[0] : (v ? String(v) : '');
+
+  // Export CSV
+  document.getElementById('exportReportBtn').addEventListener('click', () => {
+    if (currentData.length === 0) { showToast('No data to export.','warning'); return; }
+    const type = document.getElementById('reportType').value;
+
+    let rows;
+    if (type === 'borrowed' || type === 'overdue') {
+      rows = currentData.map(r => [r.borrowerName, r.borrowerDept, r.itemName, r.itemAssetCode, r.quantity, fmtExportDate(r.dateBorrowed), fmtExportDate(r.expectedReturnDate), r.status, r.purpose]);
+    } else if (type === 'valuation') {
+      rows = currentData.map(i => [i.assetCode, i.name, i.category, i.location, i.quantity, i.purchasePrice, i.currentValue, (i.purchasePrice||0)-(i.currentValue||0), i.dateAcquired, i.supplier]);
+    } else if (type === 'low-stock') {
+      rows = currentData.map(i => [i.assetCode, i.name, i.category, i.location, i.quantity, i.minStock, i.unit, i.status]);
+    } else {
+      rows = currentData.map(i => [i.assetCode, i.name, i.category, i.quantity, i.unit, i.location, i.department, i.condition, i.status, i.brand, i.model, i.serialNumber, i.dateAcquired]);
+    }
+
+    exportCSV(`report_${type}_${new Date().toISOString().split('T')[0]}.csv`, currentHeaders, rows);
+    showToast('Report exported.', 'success');
+  });
+
+  // Print
+  window.printCurrentReport = function() {
+    const title = document.getElementById('reportTitle').textContent;
+    const area = document.getElementById('reportPrintArea');
+    if (!area) return;
+    const w = window.open('', '_blank');
+    w.document.write(`<!DOCTYPE html><html><head><title>${title}</title>
+      <style>
+        body{font-family:sans-serif;font-size:12px;color:#000;padding:20px;}
+        table{width:100%;border-collapse:collapse;}
+        th,td{border:1px solid #ccc;padding:6px 10px;text-align:left;vertical-align:middle;}
+        th{background:#f0f0f0;font-weight:700;}
+        h1{font-size:18px;margin-bottom:4px;}
+        .badge{padding:2px 8px;border-radius:20px;font-size:11px;background:#eee;}
+        code{font-family:monospace;background:#f5f5f5;padding:2px 6px;border-radius:3px;}
+        .print-date{color:#666;font-size:11px;margin-bottom:16px;}
+      </style></head><body>
+      <h1>${title}</h1>
+      <p class="print-date">Generated: ${new Date().toLocaleString('en-PH')}</p>
+      ${area.innerHTML}
+      </body></html>`);
+    w.document.close(); w.focus();
+    setTimeout(() => { w.print(); w.close(); }, 600);
+  };
+
+  // Initial load
+  await loadReport().catch(e => showToast(getFirestoreError(e), 'error'));
+</script>
+</body>
+</html>
